@@ -4,7 +4,7 @@ include_directories (
   ${OpenCL_INCLUDE_DIRS})
 
 add_library(anneal-ocl SHARED
-  anneal_ocl.c)
+  anneal-ocl.c)
 target_link_libraries (anneal-ocl
   ${OpenCL_LIBRARIES}
   ${PROGRAM_MAP_LIBRARY}

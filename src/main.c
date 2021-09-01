@@ -1,7 +1,7 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "anneal_ocl.h"
+#include "anneal-ocl.h"
 
 static double gettime ()
 {
@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
     for (i=0; i<50000; i++) {
         int x = arc4random_uniform (300);
         int y = arc4random_uniform (300);
-        an_image2d_set (image1, x, y, 1 - an_image2d_get (image1, x, y));
-        an_image2d_set (image2, x, y, 1 - an_image2d_get (image2, x, y));
+        an_image2d_set (image1, y, x, 1 - an_image2d_get (image1, y, x));
+        an_image2d_set (image2, y, x, 1 - an_image2d_get (image2, y, x));
     }
     time = gettime() - time;
     printf("%f\n", time/50000);

@@ -12,8 +12,8 @@ void an_destroy_gpu_context (struct an_gpu_context *ctx);
 struct an_image2d* an_create_image2d (struct an_gpu_context *ctx, unsigned int w, unsigned int h);
 void an_destroy_image2d (struct an_image2d *image);
 
-double an_image2d_get (struct an_image2d *image, unsigned int x, unsigned int y);
-void  an_image2d_set (struct an_image2d *image, unsigned int x, unsigned int y, double val);
+double an_image2d_get (struct an_image2d *image, unsigned int y, unsigned int x);
+void  an_image2d_set (struct an_image2d *image, unsigned int y, unsigned int x, double val);
 // Call when image is filled with data
 int an_image2d_fft (struct an_image2d *image);
 // For debugging

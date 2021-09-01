@@ -6,7 +6,7 @@
 #include <program-map.h>
 #include <fftw3.h>
 
-#include "anneal_ocl.h"
+#include "anneal-ocl.h"
 
 struct an_gpu_context {
     cl_context       context;
@@ -122,7 +122,7 @@ struct an_gpu_context* an_create_gpu_context (const char *program_path) {
         goto bad;
     }
 
-    if (clBuildProgram (ctx->program, 0, NULL, NULL, NULL, NULL) != CL_SUCCESS) {
+    if (clBuildProgram (ctx->program, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL) != CL_SUCCESS) {
         fprintf(stderr, "Error building program\n");
         char buffer[4096];
         size_t length;
@@ -202,14 +202,14 @@ bad:
     return NULL;
 }
 
-double an_image2d_get (struct an_image2d *image, unsigned int x, unsigned int y) {
+double an_image2d_get (struct an_image2d *image, unsigned int y, unsigned int x) {
     double mul = pow(-1.0, x + y);
     unsigned int idx = image->w*y + x;
 
     return mul * image->spatial_domain[idx];
 }
 
-void an_image2d_set (struct an_image2d *image, unsigned int x, unsigned int y, double val) {
+void an_image2d_set (struct an_image2d *image, unsigned int y, unsigned int x, double val) {
     double mul = pow(-1.0, x + y);
     unsigned int idx = image->w*y + x;
     struct an_gpu_context *ctx = image->ctx;
