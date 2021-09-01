@@ -92,3 +92,7 @@
       (setf (aref array i j)
             (image-get image i j)))
     array))
+
+(defun image-fft (image)
+  (%image2d-fft (image-sap image))
+  image)
