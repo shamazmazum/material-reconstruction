@@ -32,7 +32,7 @@
   :maintainer "shamaz.mazum@gmail.com"
   :author "Vasily Postnicov"
   :version "0.1"
-  :depends-on (:cffi :array-operations :opticl)
+  :depends-on (:cffi :array-operations)
   :serial t
   :pathname "src/"
   :components ((:c->so "anneal-ocl")

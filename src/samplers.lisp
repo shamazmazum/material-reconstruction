@@ -29,7 +29,7 @@
             with angle    single-float = (random (* 2 (float pi 0f0)))
             with delta-x  single-float = (cos angle)
             with delta-y  single-float = (sin angle)
-            with init-val double-float = (image-get image
+            with init-val fixnum       = (image-get image
                                                     (round start-x)
                                                     (round start-y))
             do
@@ -54,11 +54,11 @@
       (sample (modifier-sampler flipper) image)
     (declare (type (unsigned-byte 32) x y))
     (image-set image x y
-               (- 1d0 (image-get image x y)))
+               (- 1 (image-get image x y)))
     (cons x y)))
 
 (defmethod rollback ((flipper flipper) image state)
   (declare (optimize (speed 3)))
   (destructuring-bind (x . y) state
     (declare (type (unsigned-byte 32) x y))
-    (image-set image x y (- 1d0 (image-get image x y)))))
+    (image-set image x y (- 1 (image-get image x y)))))

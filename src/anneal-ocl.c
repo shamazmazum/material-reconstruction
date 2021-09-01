@@ -24,7 +24,7 @@ struct an_image2d {
     struct an_gpu_context *ctx;
     cl_mem                 real;
     cl_mem                 imag;
-    double                 *spatial_domain;
+    int8_t                *spatial_domain;
     unsigned int           w, h;
     int                    bound;
 };
@@ -178,10 +178,10 @@ struct an_image2d* an_create_image2d (struct an_gpu_context *ctx,
     memset (image, 0, sizeof (struct an_image2d));
     image->ctx = ctx;
 
-    image->spatial_domain = malloc(sizeof(double) * w * h);
+    image->spatial_domain = malloc(sizeof(int8_t) * w * h);
     image->w = w;
     image->h = h;
-    memset (image->spatial_domain, 0, sizeof(double) * w * h);
+    memset (image->spatial_domain, 0, sizeof(int8_t) * w * h);
 
     image->real = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE, w*h*sizeof(cl_double), NULL, NULL);
     if (image->real == NULL) {
@@ -202,19 +202,19 @@ bad:
     return NULL;
 }
 
-double an_image2d_get (struct an_image2d *image, unsigned int y, unsigned int x) {
-    double mul = pow(-1.0, x + y);
+int8_t an_image2d_get (struct an_image2d *image, unsigned int y, unsigned int x) {
+    int8_t mul = (((x + y) & 1) == 0)? 1: -1;
     unsigned int idx = image->w*y + x;
 
     return mul * image->spatial_domain[idx];
 }
 
-void an_image2d_set (struct an_image2d *image, unsigned int y, unsigned int x, double val) {
-    double mul = pow(-1.0, x + y);
+void an_image2d_set (struct an_image2d *image, unsigned int y, unsigned int x, int8_t val) {
+    int8_t mul = (((x + y) & 1) == 0)? 1: -1;
     unsigned int idx = image->w*y + x;
     struct an_gpu_context *ctx = image->ctx;
 
-    double oldval = image->spatial_domain[idx];
+    int8_t oldval = image->spatial_domain[idx];
     image->spatial_domain[idx] = mul * val;
 
     if (image->bound) {

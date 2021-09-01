@@ -39,7 +39,7 @@
 (defcfun ("an_destroy_image2d" %destroy-image2d) :void
   (image image2d))
 
-(defcfun ("an_image2d_get" %image2d-get) :double
+(defcfun ("an_image2d_get" %image2d-get) :int8
   (image image2d)
   (y     :uint)
   (x     :uint))
@@ -48,7 +48,7 @@
   (image image2d)
   (y     :uint)
   (x     :uint)
-  (val   :double))
+  (val   :int8))
 
 (defcfun ("an_image2d_fft" %%image2d-fft) :int
   (image image2d))
