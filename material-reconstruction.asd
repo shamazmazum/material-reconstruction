@@ -21,7 +21,7 @@
                                          :defaults c-file)))
       (uiop:run-program
        (list "cc" "-fPIC" "-shared" "-I/usr/local/include" "-L/usr/local/lib"
-             "-lm" "-lOpenCL" "-lprogram-map" "-lfftw3"
+             "-lm" "-lOpenCL" "-lfftw3"
              (nn c-file)
              "-o"
              (nn shared-object))))))

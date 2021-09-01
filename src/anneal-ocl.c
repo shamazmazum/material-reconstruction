@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <program-map.h>
 #include <fftw3.h>
 
 #include "anneal-ocl.h"
@@ -60,7 +59,7 @@ void an_destroy_gpu_context (struct an_gpu_context *ctx) {
     free (ctx);
 }
 
-struct an_gpu_context* an_create_gpu_context (const char *program_path) {
+struct an_gpu_context* an_create_gpu_context (const char *program) {
     cl_context_properties properties[3];
     cl_uint num_of_platforms=0;
     cl_platform_id platform_id;
@@ -107,16 +106,7 @@ struct an_gpu_context* an_create_gpu_context (const char *program_path) {
         goto bad;
     }
 
-    struct pm_program_handler ph;
-    if (!pm_map_program (&ph, program_path)) {
-        perror (pm_get_error ());
-        fprintf (stderr, "Cannot load GPU program\n");
-        goto bad;
-    }
-
-    ctx->program = clCreateProgramWithSource (ctx->context, 1, (const char **)
-                                              &(ph.ph_space), NULL, NULL);
-    pm_unmap_program (&ph);
+    ctx->program = clCreateProgramWithSource (ctx->context, 1, &program, NULL, NULL);
     if (ctx->program == NULL) {
         fprintf (stderr, "Cannot create program\n");
         goto bad;

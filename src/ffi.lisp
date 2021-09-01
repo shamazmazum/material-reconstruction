@@ -13,7 +13,7 @@
 (defctype proximeter  :pointer)
 
 (defcfun ("an_create_gpu_context" %%create-gpu-context) gpu-context
-  (program-path :string))
+  (program :string))
 
 (defun %create-gpu-context (program-path)
   (let ((context (%%create-gpu-context program-path)))
