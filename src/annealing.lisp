@@ -4,7 +4,8 @@
   (declare (optimize (speed 3))
            (type image system target)
            (type double-float temp)
-           (type function cost modifier cooldown))
+           (type function cost cooldown)
+           (type modifier modifier))
 
   (let ((cost1 (funcall cost system target))
         (state (modify modifier system))

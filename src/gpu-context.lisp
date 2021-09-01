@@ -9,7 +9,7 @@
 
 (defun create-gpu-context ()
   (make-gpu-context
-   :context-sap (%create-gpu-context +kernel+)))
+   :context-sap (%create-gpu-context (namestring +kernel+))))
 
 (defun destroy-gpu-context (context)
   (%destroy-gpu-context (context-sap context)))

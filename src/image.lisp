@@ -82,3 +82,13 @@
     (reduce #'wrap-definition definitions
             :from-end t
             :initial-value `(progn ,@body))))
+
+(defun image->array (image)
+  (let ((array (make-array (list (image-height image)
+                                 (image-width  image))
+                           :element-type '(signed-byte 8))))
+    (nested-loop (i j)
+        (array-dimensions array)
+      (setf (aref array i j)
+            (image-get image i j)))
+    array))

@@ -29,9 +29,12 @@
            #:modifier
            #:sampler
            #:flipper
+           #:batch-modifier
            #:interface-sampler
 
            #:exponential-cooldown
+           #:aarts-korst-cooldown
            #:s2-cost
            #:annealing-step
-           #:run-annealing))
+           #:run-annealing
+           #:image->array))

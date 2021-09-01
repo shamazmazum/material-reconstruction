@@ -30,7 +30,7 @@ __kernel void metric (__global double *real1,
     double abs_sq1 = pown(real1[idx], 2) + pown(imag1[idx], 2);
     double abs_sq2 = pown(real2[idx], 2) + pown(imag2[idx], 2);
 
-    output[idx] = fabs(abs_sq1 - abs_sq2);
+    output[idx] = pown(abs_sq1 - abs_sq2, 2);
 }
 
 __kernel void reduce (__global double *array,

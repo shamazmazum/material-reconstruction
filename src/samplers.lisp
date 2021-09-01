@@ -6,11 +6,7 @@
 (defgeneric sample (sampler image)
   (:documentation "Return indices in the image"))
 
-(defclass modifier ()
-  ((sampler :reader   modifier-sampler
-            :initarg :sampler
-            :initform (error "Specify sampler")
-            :type     sampler))
+(defclass modifier () ()
   (:documentation "Generic modifier class"))
 
 (defgeneric modify (modifier image))
@@ -37,16 +33,21 @@
                (incf start-y delta-y)
                (let ((x (round start-x))
                      (y (round start-y)))
-                 (declare (type (unsigned-byte 32) x y))
+                 (declare (type (signed-byte 32) x y))
                  (cond
                    ((or (>= x width)
-                        (>= y height))
+                        (>= y height)
+                        (<  x 0)
+                        (< y  0))
                     (return))
                    ((/= (image-get image x y) init-val)
                     (return-from sample (values x y)))))))))
 
 (defclass flipper (modifier)
-  ())
+  ((sampler :reader   modifier-sampler
+            :initarg  :sampler
+            :initform (error "Specify sampler")
+            :type     sampler)))
 
 (defmethod modify ((flipper flipper) image)
   (declare (optimize (speed 3)))
@@ -62,3 +63,24 @@
   (destructuring-bind (x . y) state
     (declare (type (unsigned-byte 32) x y))
     (image-set image x y (- 1 (image-get image x y)))))
+
+(defclass batch-modifier (modifier)
+  ((modifier :initarg  :modifier
+             :reader   batch-modifier
+             :initform (error "Specify modifier")
+             :type     modifier)
+   (n        :initarg  :n
+             :initform 2
+             :reader   batch-modifier-n
+             :type     (integer 0 #.most-positive-fixnum))))
+
+(defmethod modify ((modifier batch-modifier) image)
+  (loop with base-modifier = (batch-modifier modifier)
+        repeat (batch-modifier-n modifier) collect
+        (modify base-modifier image)))
+
+(defmethod rollback ((modifier batch-modifier) image state)
+  (declare (type list state))
+  (loop with base-modifier = (batch-modifier modifier)
+        for s in (reverse state) do
+          (rollback base-modifier image s)))
