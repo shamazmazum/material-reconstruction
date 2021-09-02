@@ -26,11 +26,10 @@
              "-o"
              (nn shared-object))))))
 
-(defsystem material-reconstruction
+(defsystem :material-reconstruction
   :license "BSD 2-Clause"
   :description "Simulated annealing of materials based on S₂ correlation function"
-  :maintainer "shamaz.mazum@gmail.com"
-  :author "Vasily Postnicov"
+  :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :version "0.1"
   :depends-on (:cffi :array-operations)
   :serial t
@@ -46,4 +45,18 @@
                (:file "samplers")
                (:file "cooldown")
                (:file "cost")
-               (:file "annealing")))
+               (:file "annealing"))
+  :in-order-to ((test-op (load-op "material-reconstruction/tests")))
+  :perform (test-op (op system)
+                    (declare (ignore op system))
+                    (uiop:symbol-call :material-reconstruction-tests '#:run-tests)))
+
+(defsystem :material-reconstruction/tests
+  :version "0.1"
+  :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
+  :pathname "tests/"
+  :components ((:file "package")
+               (:file "tests" :depends-on ("package")))
+  :depends-on (:material-reconstruction
+               :fiveam
+               :cl-value-noise))
