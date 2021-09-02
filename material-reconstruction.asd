@@ -21,10 +21,10 @@
                                          :defaults c-file)))
       (uiop:run-program
        (list "cc" "-fPIC" "-shared" "-I/usr/local/include" "-L/usr/local/lib"
-             "-lm" "-lOpenCL" "-lfftw3"
-             (nn c-file)
              "-o"
-             (nn shared-object))))))
+             (nn shared-object)
+             (nn c-file)
+             "-lm" "-lOpenCL" "-lfftw3")))))
 
 (defsystem :material-reconstruction
   :license "BSD 2-Clause"

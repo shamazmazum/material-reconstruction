@@ -1,4 +1,5 @@
 # material-reconstruction
+[![CI](https://github.com/shamazmazum/material-reconstruction/actions/workflows/build.yml/badge.svg)](https://github.com/shamazmazum/material-reconstruction/actions/workflows/build.yml)
 
 This library provides the means for reconstruction of 2D images via simulated
 annealing based on S₂ correlation function.
