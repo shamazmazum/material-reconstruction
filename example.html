@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+  Example &ndash; Material Reconstruction
+</title>
+    <link rel="stylesheet" href="static/style.css"/>
+    
+  <link rel="stylesheet" href="static/highlight.css"/>
+  <script src="static/highlight.js"></script>
+  <style>
+   /* Highlight the current top-level TOC item, and hide the TOC of all other items */
+
+   .toc a[data-node="example"] {
+       /*color: #AD3108;*/
+   }
+
+   .toc ol {
+       display: none;
+   }
+
+   .toc li a[data-node="example"] {
+       font-weight: bold;
+   }
+
+   .toc li a[data-node="example"] + ol {
+       display: block;
+   }
+
+   .toc li a[data-node="example"] + ol li {
+       margin-left: 10px;
+   }
+  </style>
+
+  </head>
+  <body>
+    
+  <h1 class="doc-title">Material Reconstruction</h1>
+  <article id="article" data-section="example">
+    <aside>
+      <ol class="toc"><li><a href="index.html" data-node="index">Overview</a></li><li><a href="dependencies.html" data-node="dependencies">Dependencies</a></li><li><a href="example.html" data-node="example">Example</a></li><li><a href="api.html" data-node="api">API</a></li></ol>
+    </aside>
+    <main class="codex-section">
+      <header>
+        <h2 class="section-title">Example</h2>
+      </header>
+      <div class="content">
+        <p>
+   The following example takes an original image (a slice of <b>FIXME: ceramic</b>)
+   and an initial approximation and reconstructs the original. Dimensions of the
+   original image are 300x300 pixels. The code below was used to run a
+   reconstruction. The value of <code>steps</code> argument was <code>3000000</code>.
+   </p><pre><code class="lisp">(defpackage annealing-test
+  (:use #:cl #:recon)
+  (:export #:test-annealing))
+(in-package :annealing-test)
+
+(defun read-image (name h w)
+  &quot;Read a binary file into an array of octets.&quot;
+  (let* ((array (make-array (list h w) :element-type '(signed-byte 8)))
+         (displaced (make-array (* w h)
+                                :element-type '(signed-byte 8)
+                                :displaced-to array
+                                :displaced-index-offset 0)))
+    (with-open-file (input name :element-type '(signed-byte 8))
+      (read-sequence displaced input))
+    array))
+
+(defun make-modifier ()
+  &quot;Create a modifier which will sample the pixel at the boundary
+between phases (zeros and ones) and change the value of the pixel to
+the opposite.&quot;
+  (make-instance 'batch-modifier
+                 :modifier (make-instance 'flipper
+                                          :sampler (make-instance 'interface-sampler))))
+
+(defun test-annealing (original init steps &amp;key (side 300)(t0 1d-5))
+  &quot;Run simulation of annealing for STEPS steps. INIT is the name of a
+file with initial approximation of ORIGINAL. ORIGINAL and INIT are
+file names of images with dimension SIDExSIDE in raw format. T0 is
+initial temperature of the system.&quot;
+  (with-gpu-context (ctx) ; Create GPU context
+    (with-images ((image1 ctx side side)
+                  (image2 ctx side side)) ; Create two image objects
+      ;; Load images to the GPU
+      (load-image image1 (read-image init     side side))
+      (load-image image2 (read-image original side side))
+      ;; Create proximeter — an object which measures a distance
+      ;; between two images according to two-point correlation
+      ;; function.
+      (with-proximeter (proximeter image1 image2)
+        (let ((cost     (s2-cost proximeter)) ; Wrap proximeter in a cost function
+              (cooldown (aarts-korst-cooldown :n 50 :alpha 0.01d0)) ; Create cooldown schedule
+              (modifier (make-modifier))) ; Create a modifier
+          ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
+          (run-annealing image1 image2 t0 steps
+                         :cost     cost
+                         :cooldown cooldown
+                         :modifier modifier)))
+      ;; Convert the result into array
+      (image-&gt;array image1))))
+   </code></pre><p>   The original image: <img src="original.png"/>
+   The initial approximation: <img src="init.png"/>
+   The reconstruction: <img src="reconstruction.png"/>
+</p>
+      </div>
+    </main>
+  </article>
+  <footer>
+    <div class="info">
+      Created with <a href="https://github.com/CommonDoc/codex">Codex</a>.
+    </div>
+  </footer>
+  <script>
+   HighlightLisp.highlight_auto();
+  </script>
+
+  </body>
+</html>
