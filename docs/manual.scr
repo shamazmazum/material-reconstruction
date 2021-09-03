@@ -30,7 +30,65 @@
 
 @begin(section)
    @title(Example)
-   AAA
+   The following example takes an original image (a slice of @b(FIXME: ceramic))
+   and an initial approximation and reconstructs the original. Dimensions of the
+   original image are 300x300 pixels. The code below was used to run a
+   reconstruction. The value of @c(steps) argument was @c(3000000).
+   @begin[lang=lisp](code)
+(defpackage annealing-test
+  (:use #:cl #:recon)
+  (:export #:test-annealing))
+(in-package :annealing-test)
+
+(defun read-image (name h w)
+  "Read a binary file into an array of octets."
+  (let* ((array (make-array (list h w) :element-type '(signed-byte 8)))
+         (displaced (make-array (* w h)
+                                :element-type '(signed-byte 8)
+                                :displaced-to array
+                                :displaced-index-offset 0)))
+    (with-open-file (input name :element-type '(signed-byte 8))
+      (read-sequence displaced input))
+    array))
+
+(defun make-modifier ()
+  "Create a modifier which will sample the pixel at the boundary
+between phases (zeros and ones) and change the value of the pixel to
+the opposite."
+  (make-instance 'batch-modifier
+                 :modifier (make-instance 'flipper
+                                          :sampler (make-instance 'interface-sampler))))
+
+(defun test-annealing (original init steps &key (side 300) (t0 1d-5))
+  "Run simulation of annealing for STEPS steps. INIT is the name of a
+file with initial approximation of ORIGINAL. ORIGINAL and INIT are
+file names of images with dimension SIDExSIDE in raw format. T0 is
+initial temperature of the system."
+  (with-gpu-context (ctx) ; Create GPU context
+    (with-images ((image1 ctx side side)
+                  (image2 ctx side side)) ; Create two image objects
+      ;; Load images to the GPU
+      (load-image image1 (read-image init     side side))
+      (load-image image2 (read-image original side side))
+      ;; Create proximeter — an object which measures a distance
+      ;; between two images according to two-point correlation
+      ;; function.
+      (with-proximeter (proximeter image1 image2)
+        (let ((cost     (s2-cost proximeter)) ; Wrap proximeter in a cost function
+              (cooldown (aarts-korst-cooldown :n 50 :alpha 0.01d0)) ; Create cooldown schedule
+              (modifier (make-modifier))) ; Create a modifier
+          ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
+          (run-annealing image1 image2 t0 steps
+                         :cost     cost
+                         :cooldown cooldown
+                         :modifier modifier)))
+      ;; Convert the result into array
+      (image->array image1))))
+   @end(code)
+
+   The original image: @image[src=original.png]()
+   The initial approximation: @image[src=init.png]()
+   The reconstruction: @image[src=reconstruction.png]()
 @end(section)
 
 @begin(section)
