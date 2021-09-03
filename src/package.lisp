@@ -33,8 +33,10 @@
            #:interface-sampler
 
            #:initialize-random
+
            #:exponential-cooldown
            #:aarts-korst-cooldown
+
            #:s2-cost
            #:annealing-step
            #:run-annealing

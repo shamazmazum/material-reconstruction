@@ -1,6 +1,9 @@
 (in-package :material-reconstruction)
 
 (defun s2-cost (proximeter)
+  "Create a cost function based on two-point correlation function. An
+early created @c(proximeter) object is required to actually measure
+the cost."
   (declare (optimize (speed 3))
            (type proximeter proximeter))
   (let ((initial-value (proximity proximeter)))

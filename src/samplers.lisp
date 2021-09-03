@@ -12,8 +12,9 @@
 (defgeneric modify (modifier image))
 (defgeneric rollback (modifier image state))
 
-(defclass interface-sampler (sampler)
-  ())
+(defclass interface-sampler (sampler) ()
+  (:documentation "This sampler takes a sample on a boundary between
+two phases"))
 
 (defmethod sample ((sampler interface-sampler) image)
   (declare (optimize (speed 3)))
@@ -47,7 +48,9 @@
   ((sampler :reader   modifier-sampler
             :initarg  :sampler
             :initform (error "Specify sampler")
-            :type     sampler)))
+            :type     sampler))
+  (:documentation "A modifier which flips the phase of taken sample
+(works with two-phase images only)."))
 
 (defmethod modify ((flipper flipper) image)
   (declare (optimize (speed 3)))
@@ -72,7 +75,9 @@
    (n        :initarg  :n
              :initform 2
              :reader   batch-modifier-n
-             :type     (integer 0 #.most-positive-fixnum))))
+             :type     (integer 0 #.most-positive-fixnum)))
+  (:documentation "A modifier which makes @c(n) modifications with the
+modifier @c(modifier) at a time."))
 
 (defmethod modify ((modifier batch-modifier) image)
   (loop with base-modifier = (batch-modifier modifier)

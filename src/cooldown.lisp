@@ -1,6 +1,9 @@
 (in-package :material-reconstruction)
 
 (defun exponential-cooldown (&key (alpha 0.99999d0))
+  "Return exponential cooldown schedule with decay coefficient
+@c(alpha). Annealing temperature @c(temp) decreases @c(alpha) times
+at each step."
   (declare (optimize (speed 3))
            (type double-float alpha))
   (lambda (temperature energy)
@@ -33,6 +36,10 @@
     (sqrt (/ sum (* length (1- length))))))
 
 (defun aarts-korst-cooldown (&key (n 200) (alpha 0.01d0))
+  "Create a cooldown schedule described by Aarts and Korst @b(FIXME:
+where?). Annealing temperature decreases once each @c(n) steps
+according to a parameter @c(alhpa). The larger that parameter is the
+faster the system loses temperature."
   (declare (optimize (speed 3))
            (type (integer 0 #.most-positive-fixnum) n)
            (type double-float alpha))
