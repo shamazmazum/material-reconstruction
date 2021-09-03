@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  docs_deploy:
+    runs-on: ubuntu-latest
+    env:
+      LISP: sbcl-bin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get install mesa-opencl-icd ocl-icd-opencl-dev libfftw3-dev libfftw3-double3
+      - name: Install roswell
+        run: |
+          curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
+      - name: Checkout Codex
+        uses: actions/checkout@v2
+        with:
+          repository: shamazmazum/codex
+          path: ~/.roswell/local-projects/codex
+      - name: Checkout docparser
+        uses: actions/checkout@v2
+        with:
+          repository: shamazmazum/docparser
+          path: ~/.roswell/local-projects/docparser
+      - name: Build documentation
+        run: |
+          ros -s codex -s material-reconstruction -e '(codex:document :material-reconstruction :skip-undocumented t)'
+      - name: Deploy to GH pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/material-reconstruction/html
