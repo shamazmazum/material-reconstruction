@@ -76,8 +76,8 @@ two phases"))
              :initform 2
              :reader   batch-modifier-n
              :type     (integer 0 #.most-positive-fixnum)))
-  (:documentation "A modifier which makes @c(n) modifications with the
-modifier @c(modifier) at a time."))
+  (:documentation "A modifier which makes @c(n) modifications at a
+time with the modifier @c(modifier)."))
 
 (defmethod modify ((modifier batch-modifier) image)
   (loop with base-modifier = (batch-modifier modifier)

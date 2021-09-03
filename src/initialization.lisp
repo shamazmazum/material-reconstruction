@@ -8,8 +8,9 @@
 ;; This is generally for tests
 (defun initialize-random (image target &key (phase 1))
   "Initialize @c(image) with random data so that a ratio of phase
-@c(phase) is equal to that of @(target). Both @c(image) and @c(target)
-must be objects of type @c(image) and have the same dimensions."
+@c(phase) is equal to that of @c(target). Both @c(image) and
+@c(target) must be objects of type @c(image) and have the same
+dimensions."
   (when (or (/= (image-width image)
                 (image-width target))
             (/= (image-height image)

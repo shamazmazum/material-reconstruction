@@ -17,6 +17,8 @@
            #:load-image
            #:image-get
            #:image-set
+           #:image-width
+           #:image-height
            #:with-image
            #:with-images
 

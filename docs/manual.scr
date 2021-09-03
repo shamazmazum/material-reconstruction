@@ -1,0 +1,109 @@
+@begin[ref=index](section)
+   @title(Overview)
+   @c(material-reconstruction) is a tool which helps to restore 2D images
+   according to their two-point correlation function using the algorithm called
+   simulated annealing.
+
+   According to Salvatore Torquato's book "Random Heterogeneous Materials",
+   two-point correlation function is defined as follows.
+   @begin(quote)
+      The two-point or autocorrelation function S₂(r) = S₂¹(r) for statistically
+   homogeneous media can be obtained by randomly tossing line segments of length
+   r with a specified orientation [into the image] and counting the fraction of
+   times the end points fall in phase 1.
+   @end(quote)
+
+   The term "phase" means just a value of a pixel in an image. This library
+   works with two-phase images which means its pixels can have a value @c(0) or
+   @c(1).
+@end(section)
+
+@begin(section)
+   @title(Dependencies)
+   This library has few dependencies from the "C world":
+   @begin(list)
+      @item(A C compiler, like gcc or clang)
+      @item(OpenCL)
+      @item(FFTW3 with double precision)
+   @end(list)
+@end(section)
+
+@begin(section)
+   @title(Example)
+   AAA
+@end(section)
+
+@begin(section)
+   @title(API)
+   @u(Conditions)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(condition recon-error)
+      @cl:doc(condition gpu-context-error)
+   )
+
+   @u(GPU context)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(struct gpu-context)
+      @cl:doc(function create-gpu-context)
+      @cl:doc(function destroy-gpu-context)
+      @cl:doc(macro with-gpu-context)
+   )
+
+   @u(Images)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(struct image)
+      @cl:doc(function create-image)
+      @cl:doc(function destroy-image)
+      @cl:doc(function load-image)
+      @cl:doc(function image-get)
+      @cl:doc(function image-set)
+      @cl:doc(macro with-image)
+      @cl:doc(macro with-images)
+   )
+
+   @u(Proximeter)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(struct proximeter)
+      @cl:doc(function create-proximeter)
+      @cl:doc(function destroy-proximeter)
+      @cl:doc(function proximity)
+      @cl:doc(macro with-proximeter)
+   )
+
+   @u(Modifiers and samplers)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(class modifier)
+      @cl:doc(class sampler)
+      @cl:doc(class flipper)
+      @cl:doc(class batch-modifier)
+      @cl:doc(class interface-sampler)
+   )
+
+   @u(Cooldown schedules)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(function exponential-cooldown)
+      @cl:doc(function aarts-korst-cooldown)
+   )
+
+   @u(Initialization)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(function initialize-random)
+   )
+
+   @u(Cost functions)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(function s2-cost)
+   )
+
+   @u(Simulated annealing)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(function annealing-step)
+      @cl:doc(function run-annealing)
+   )
+
+   @u(Other functions)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(function image->array)
+   )
+  
+@end(section)
