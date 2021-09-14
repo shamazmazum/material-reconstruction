@@ -193,19 +193,17 @@ bad:
 }
 
 int8_t an_image2d_get (struct an_image2d *image, unsigned int y, unsigned int x) {
-    int8_t mul = (((x + y) & 1) == 0)? 1: -1;
     unsigned int idx = image->w*y + x;
 
-    return mul * image->spatial_domain[idx];
+    return image->spatial_domain[idx];
 }
 
 void an_image2d_set (struct an_image2d *image, unsigned int y, unsigned int x, int8_t val) {
-    int8_t mul = (((x + y) & 1) == 0)? 1: -1;
     unsigned int idx = image->w*y + x;
     struct an_gpu_context *ctx = image->ctx;
 
     int8_t oldval = image->spatial_domain[idx];
-    image->spatial_domain[idx] = mul * val;
+    image->spatial_domain[idx] = val;
 
     if (image->bound) {
         size_t dim[2];
