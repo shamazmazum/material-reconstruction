@@ -16,6 +16,9 @@
   (:documentation "This sampler takes a sample on a boundary between
 two phases"))
 
+(defclass uniform-sampler (sampler) ()
+  (:documentation "Take samples uniformly over the whole image"))
+
 (defmethod sample ((sampler interface-sampler) image)
   (declare (optimize (speed 3)))
   (let ((width (image-width image))
@@ -43,6 +46,13 @@ two phases"))
                     (return))
                    ((/= (image-get image x y) init-val)
                     (return-from sample (values x y)))))))))
+
+(defmethod sample ((sampler uniform-sampler) image)
+  (declare (optimize (speed 3)))
+  (let ((width (image-width image))
+        (height (image-height image)))
+    (values (random width)
+            (random height))))
 
 (defclass flipper (modifier)
   ((sampler :reader   modifier-sampler

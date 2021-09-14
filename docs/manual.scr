@@ -135,6 +135,7 @@ initial temperature of the system."
       @cl:doc(class flipper)
       @cl:doc(class batch-modifier)
       @cl:doc(class interface-sampler)
+      @cl:doc(class uniform-sampler)
    )
 
    @u(Cooldown schedules)

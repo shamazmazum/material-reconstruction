@@ -33,6 +33,7 @@
            #:flipper
            #:batch-modifier
            #:interface-sampler
+           #:uniform-sampler
 
            #:initialize-random
 
