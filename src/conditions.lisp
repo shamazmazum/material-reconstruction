@@ -7,6 +7,3 @@
 (define-condition gpu-context-error (recon-error)
   ()
   (:documentation "Signalled on GPU error"))
-
-(define-condition recon-simple-error (recon-error simple-condition)
-  ())

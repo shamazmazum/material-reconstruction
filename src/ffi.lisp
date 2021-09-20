@@ -26,38 +26,34 @@
 
 
 (defcfun ("an_create_image2d" %%create-image2d) image2d
-  (ctx gpu-context)
-  (w   :uint)
-  (h   :uint))
+  (ctx   gpu-context)
+  (array :pointer)
+  (w     :uint)
+  (h     :uint))
 
-(defun %create-image2d (ctx w h)
-  (let ((image (%%create-image2d ctx w h)))
-    (when (null-pointer-p image)
-      (error 'gpu-context-error))
-    image))
+(defun %create-image2d (ctx array)
+  (declare (type (simple-array bit (* *)) array))
+  (let ((height (array-dimension array 0))
+        (width  (array-dimension array 1))
+        (buffer (map-into
+                 (make-shareable-byte-vector
+                  (array-total-size array))
+                 #'identity
+                 (aops:flatten array))))
+    (with-pointer-to-vector-data (buffer-ptr buffer)
+      (let ((image (%%create-image2d ctx buffer-ptr width height)))
+        (when (null-pointer-p image)
+          (error 'gpu-context-error))
+        image))))
 
 (defcfun ("an_destroy_image2d" %destroy-image2d) :void
   (image image2d))
 
-(defcfun ("an_image2d_get" %image2d-get) :int8
-  (image image2d)
-  (y     :uint)
-  (x     :uint))
-
-(defcfun ("an_image2d_set" %image2d-set) :void
+(defcfun ("an_image2d_update_fft" %image2d-update-fft) :void
   (image image2d)
   (y     :uint)
   (x     :uint)
-  (val   :int8))
-
-(defcfun ("an_image2d_fft" %%image2d-fft) :int
-  (image image2d))
-
-(defun %image2d-fft (image)
-  (let ((res (%%image2d-fft image)))
-    (when (zerop res)
-      (error 'gpu-context-error)))
-  (values))
+  (delta :int8))
 
 (defcfun ("an_create_proximeter" %%create-proximeter) proximeter
   (image1 image2d)

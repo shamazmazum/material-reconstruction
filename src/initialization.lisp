@@ -1,31 +1,23 @@
 (in-package :material-reconstruction)
 
-(defun count-phase (image phase)
-  (loop for y below (image-height image)
-        sum (loop for x below (image-width image)
-                  sum (if (= phase (image-get image x y)) 1 0))))
+(defun count-foreground-phase (array)
+  (reduce #'+ (aops:flatten array)))
 
 ;; This is generally for tests
-(defun initialize-random (image target &key (phase 1))
-  "Initialize @c(image) with random data so that a ratio of phase
-@c(phase) is equal to that of @c(target). Both @c(image) and
-@c(target) must be objects of type @c(image) and have the same
-dimensions."
-  (when (or (/= (image-width image)
-                (image-width target))
-            (/= (image-height image)
-                (image-height target)))
-    (error 'recon-simple-error
-           :format-control "Dimension mismatch"))
-
-  (loop with phase-image    = (count-phase image  phase)
-        with phase-target   = (count-phase target phase)
-        with width          = (image-width  image)
-        with height         = (image-height image)
-        while (< phase-image phase-target) do
+(defun initialize-random (target)
+  "Create an array with random data with the same ratio of binary
+phases as in @c(target). @c(target) must be a binary 2D array."
+  (loop with init           = (make-array (array-dimensions target)
+                                          :element-type 'bit
+                                          :initial-element 0)
+        with phase-target   = (count-foreground-phase target)
+        with phase-init     = 0
+        with height         = (array-dimension init 0)
+        with width          = (array-dimension init 1)
+        while (< phase-init phase-target) do
           (let ((x (random width))
                 (y (random height)))
-            (when (/= (image-get image x y) phase)
-              (incf phase-image)
-              (image-set image x y phase))))
-  (image-fft image))
+            (when (zerop (aref init y x))
+              (incf phase-init)
+              (setf (aref init y x) 1)))
+        finally (return init)))

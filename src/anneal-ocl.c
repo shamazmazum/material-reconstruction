@@ -23,9 +23,7 @@ struct an_image2d {
     struct an_gpu_context *ctx;
     cl_mem                 real;
     cl_mem                 imag;
-    int8_t                *spatial_domain;
     unsigned int           w, h;
-    int                    bound;
 };
 
 struct an_proximeter {
@@ -148,84 +146,9 @@ bad:
 }
 
 /* Image handling */
-void an_destroy_image2d (struct an_image2d *image) {
-    if (image->imag != NULL) {
-        clReleaseMemObject (image->imag);
-    }
 
-    if (image->real != NULL) {
-        clReleaseMemObject (image->real);
-    }
-
-    free (image->spatial_domain);
-    free (image);
-}
-
-struct an_image2d* an_create_image2d (struct an_gpu_context *ctx,
-                                      unsigned int           w,
-                                      unsigned int           h) {
-    struct an_image2d *image = malloc (sizeof (struct an_image2d));
-    memset (image, 0, sizeof (struct an_image2d));
-    image->ctx = ctx;
-
-    image->spatial_domain = malloc(sizeof(int8_t) * w * h);
-    image->w = w;
-    image->h = h;
-    memset (image->spatial_domain, 0, sizeof(int8_t) * w * h);
-
-    image->real = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE, w*h*sizeof(cl_double), NULL, NULL);
-    if (image->real == NULL) {
-        fprintf (stderr, "Cannot allocate an image %ux%u\n", w, h);
-        goto bad;
-    }
-
-    image->imag = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE, w*h*sizeof(cl_double), NULL, NULL);
-    if (image->imag == NULL) {
-        fprintf (stderr, "Cannot allocate an image %ux%u\n", w, h);
-        goto bad;
-    }
-
-    return image;
-
-bad:
-    an_destroy_image2d (image);
-    return NULL;
-}
-
-int8_t an_image2d_get (struct an_image2d *image, unsigned int y, unsigned int x) {
-    unsigned int idx = image->w*y + x;
-
-    return image->spatial_domain[idx];
-}
-
-void an_image2d_set (struct an_image2d *image, unsigned int y, unsigned int x, int8_t val) {
-    unsigned int idx = image->w*y + x;
-    struct an_gpu_context *ctx = image->ctx;
-
-    int8_t oldval = image->spatial_domain[idx];
-    image->spatial_domain[idx] = val;
-
-    if (image->bound) {
-        size_t dim[2];
-
-        // Recalculate FT on GPU
-        cl_double diff = image->spatial_domain[idx] - oldval;
-        clSetKernelArg (ctx->sparse_ft2d, 0, sizeof(cl_mem),   &image->real);
-        clSetKernelArg (ctx->sparse_ft2d, 1, sizeof(cl_mem),   &image->imag);
-        clSetKernelArg (ctx->sparse_ft2d, 2, sizeof(cl_uint),  &x);
-        clSetKernelArg (ctx->sparse_ft2d, 3, sizeof(cl_uint),  &y);
-        clSetKernelArg (ctx->sparse_ft2d, 4, sizeof(cl_double), &diff);
-
-        dim[0] = image->h;
-        dim[1] = image->w;
-        clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft2d,
-                                2, NULL, dim, NULL, 0, NULL, NULL);
-        clFinish(ctx->queue);
-    }
-}
-
-// Calculate FFT and upload to the GPU
-int an_image2d_fft (struct an_image2d *image) {
+/* Calculate FFT and upload to the GPU */
+static int an_image2d_fft (struct an_image2d *image, const uint8_t *array) {
     // Calculate an FFT
     fftw_complex *in, *out;
     fftw_plan p;
@@ -242,7 +165,7 @@ int an_image2d_fft (struct an_image2d *image) {
     }
 
     for (i=0; i<n; i++) {
-        in[i][0] = image->spatial_domain[i];
+        in[i][0] = array[i];
         in[i][1] = 0.0;
     }
 
@@ -280,11 +203,78 @@ cleanup:
     fftw_free (out);
     clFinish(image->ctx->queue);
 
-    if (ok) {
-        image->bound = 1;
+    return ok;
+}
+
+void an_destroy_image2d (struct an_image2d *image) {
+    if (image->imag != NULL) {
+        clReleaseMemObject (image->imag);
     }
 
-    return ok;
+    if (image->real != NULL) {
+        clReleaseMemObject (image->real);
+    }
+
+    free (image);
+}
+
+struct an_image2d*
+an_create_image2d (struct an_gpu_context *ctx,
+                   const uint8_t         *array,
+                   unsigned int           w,
+                   unsigned int           h) {
+    struct an_image2d *image = malloc (sizeof (struct an_image2d));
+    memset (image, 0, sizeof (struct an_image2d));
+    image->ctx = ctx;
+
+    image->w = w;
+    image->h = h;
+
+    image->real = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE, w*h*sizeof(cl_double), NULL, NULL);
+    if (image->real == NULL) {
+        fprintf (stderr, "Cannot allocate an image %ux%u\n", w, h);
+        goto bad;
+    }
+
+    image->imag = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE, w*h*sizeof(cl_double), NULL, NULL);
+    if (image->imag == NULL) {
+        fprintf (stderr, "Cannot allocate an image %ux%u\n", w, h);
+        goto bad;
+    }
+
+    if (!an_image2d_fft (image, array)) {
+        fprintf (stderr, "Failed to perform FFT\n");
+        goto bad;
+    }
+
+    return image;
+
+bad:
+    an_destroy_image2d (image);
+    return NULL;
+}
+
+void an_image2d_update_fft (struct an_image2d *image,
+                            unsigned int       y,
+                            unsigned int       x,
+                            int8_t             delta) {
+    unsigned int idx = image->w*y + x;
+    struct an_gpu_context *ctx = image->ctx;
+    size_t dim[2];
+
+    // Recalculate FT on GPU
+    cl_double d = delta;
+    clSetKernelArg (ctx->sparse_ft2d, 0, sizeof(cl_mem),    &image->real);
+    clSetKernelArg (ctx->sparse_ft2d, 1, sizeof(cl_mem),    &image->imag);
+    clSetKernelArg (ctx->sparse_ft2d, 2, sizeof(cl_uint),   &x);
+    clSetKernelArg (ctx->sparse_ft2d, 3, sizeof(cl_uint),   &y);
+    clSetKernelArg (ctx->sparse_ft2d, 4, sizeof(cl_double), &d);
+
+    dim[0] = image->h;
+    dim[1] = image->w;
+    clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft2d,
+                            2, NULL, dim, NULL, 0, NULL, NULL);
+    clFinish(ctx->queue);
 }
 
 void an_image_get_fft (struct an_image2d *image, double *real, double *imag) {

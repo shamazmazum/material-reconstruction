@@ -14,11 +14,11 @@
            #:image
            #:create-image
            #:destroy-image
-           #:load-image
            #:image-get
            #:image-set
            #:image-width
            #:image-height
+           #:image-array
            #:with-image
            #:with-images
 
@@ -42,5 +42,4 @@
 
            #:s2-cost
            #:annealing-step
-           #:run-annealing
-           #:image->array))
+           #:run-annealing))
