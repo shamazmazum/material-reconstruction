@@ -31,6 +31,7 @@
            #:modifier
            #:sampler
            #:flipper
+           #:swapper
            #:batch-modifier
            #:interface-sampler
            #:uniform-sampler
