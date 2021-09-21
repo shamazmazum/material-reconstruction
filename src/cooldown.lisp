@@ -32,7 +32,8 @@ at each step."
                                   (declare (type double-float x))
                                   (expt (- x mean) 2))
                                 array))))
-    (declare (type (double-float 0d0) sum))
+    (declare (type (double-float 0d0) sum)
+             (type (integer 1) length))
     (sqrt (/ sum (* length (1- length))))))
 
 (defun aarts-korst-cooldown (&key (n 200) (alpha 0.01d0))
