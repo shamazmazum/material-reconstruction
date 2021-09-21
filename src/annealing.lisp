@@ -44,7 +44,7 @@ discarded."
       (setq accepted (not rejected)))
 
     (values
-     (if rejected temp (funcall cooldown temp cost2))
+     (funcall cooldown temp cost2)
      accepted rejected)))
 
 (defun run-annealing (system target t0 n &key cost modifier cooldown)

@@ -1,15 +1,21 @@
 (in-package :material-reconstruction)
 
-(defun exponential-cooldown (&key (alpha 0.99999d0))
+(defun exponential-cooldown (&key (n 10000) (alpha 0.95d0))
   "Return exponential cooldown schedule with decay coefficient
 @c(alpha). Annealing temperature @c(temp) decreases @c(alpha) times
-at each step."
+each @c(n)-th step."
   (declare (optimize (speed 3))
+           (type (integer 1 #.most-positive-fixnum) n)
            (type double-float alpha))
-  (lambda (temperature energy)
-    (declare (type double-float temperature)
-             (ignore energy))
-    (* temperature alpha)))
+  (let ((count 0))
+    (declare (type fixnum count))
+    (lambda (temperature energy)
+      (declare (type double-float temperature)
+               (ignore energy))
+      (incf count)
+      (if (zerop (rem count n))
+          (* temperature alpha)
+          temperature))))
 
 (declaim (ftype (function ((simple-array double-float))
                           (values double-float &optional))
@@ -36,13 +42,13 @@ at each step."
              (type (integer 1) length))
     (sqrt (/ sum (* length (1- length))))))
 
-(defun aarts-korst-cooldown (&key (n 200) (alpha 0.01d0))
+(defun aarts-korst-cooldown (&key (n 10000) (alpha 0.05d0))
   "Create a cooldown schedule described by Aarts and Korst @b(FIXME:
 where?). Annealing temperature decreases once each @c(n) steps
 according to a parameter @c(alhpa). The larger that parameter is the
 faster the system loses temperature."
   (declare (optimize (speed 3))
-           (type (integer 0 #.most-positive-fixnum) n)
+           (type (integer 1 #.most-positive-fixnum) n)
            (type double-float alpha))
   (let ((costs (make-array n :element-type 'double-float))
         (counter 0))
