@@ -60,9 +60,9 @@
 
 (defun read-image (name h w)
   &quot;Read a binary file into an array of octets.&quot;
-  (let* ((array (make-array (list h w) :element-type '(signed-byte 8)))
+  (let* ((array (make-array (list h w) :element-type 'bit))
          (displaced (make-array (* w h)
-                                :element-type '(signed-byte 8)
+                                :element-type 'bit
                                 :displaced-to array
                                 :displaced-index-offset 0)))
     (with-open-file (input name :element-type '(signed-byte 8))
@@ -77,31 +77,33 @@ the opposite.&quot;
                  :modifier (make-instance 'flipper
                                           :sampler (make-instance 'interface-sampler))))
 
-(defun test-annealing (original init steps &amp;key (side 300)(t0 1d-5))
-  &quot;Run simulation of annealing for STEPS steps. INIT is the name of a
-file with initial approximation of ORIGINAL. ORIGINAL and INIT are
+(defun test-annealing (original initial steps &amp;key (side 300)(t0 1d-5))
+  &quot;Run simulation of annealing for STEPS steps. INITIAL is the name of a
+file with initial approximation of ORIGINAL. ORIGINAL and INITIAL are
 file names of images with dimension SIDExSIDE in raw format. T0 is
 initial temperature of the system.&quot;
-  (with-gpu-context (ctx) ; Create GPU context
-    (with-images ((image1 ctx side side)
-                  (image2 ctx side side)) ; Create two image objects
-      ;; Load images to the GPU
-      (load-image image1 (read-image init     side side))
-      (load-image image2 (read-image original side side))
-      ;; Create proximeter — an object which measures a distance
-      ;; between two images according to two-point correlation
-      ;; function.
-      (with-proximeter (proximeter image1 image2)
-        (let ((cost     (s2-cost proximeter)) ; Wrap proximeter in a cost function
-              (cooldown (aarts-korst-cooldown :n 50 :alpha 0.01d0)) ; Create cooldown schedule
-              (modifier (make-modifier))) ; Create a modifier
-          ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
-          (run-annealing image1 image2 t0 steps
-                         :cost     cost
-                         :cooldown cooldown
-                         :modifier modifier)))
-      ;; Convert the result into array
-      (image-&gt;array image1))))
+  ;; Load images
+  (let ((original-array (read-image original side side))
+        (initial-array  (read-image initial  side side)))
+    ;; Create GPU context
+    (with-gpu-context (ctx)
+      ;; Upload images to GPU
+      (with-images ((image1 ctx initial-array)
+                    (image2 ctx original-array))
+        ;; Create proximeter — an object which measures a distance
+        ;; between two images according to two-point correlation
+        ;; function.
+        (with-proximeter (proximeter image1 image2)
+          (let ((cost     (s2-cost proximeter)) ; Wrap proximeter in a cost function
+                (cooldown (aarts-korst-cooldown :n 10000 :alpha 0.01d0)) ; Create cooldown schedule
+                (modifier (make-modifier))) ; Create a modifier
+            ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
+            (run-annealing image1 image2 t0 steps
+                           :cost     cost
+                           :cooldown cooldown
+                           :modifier modifier)))
+        ;; Return the resulting bit array
+        (image-array image1)))))
    </code></pre><p>   The original image: <img src="original.png"/>
    The initial approximation: <img src="init.png"/>
    The reconstruction: <img src="reconstruction.png"/>
