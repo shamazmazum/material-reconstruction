@@ -18,11 +18,11 @@ temperature is decreased according to cooldown schedule
 @c(cooldown). Currently implemented schedules are
 @c(exponential-cooldown) and @c(aarts-korst-cooldown).
 
-This function returns three values: a new value of the system's
-temperature, a boolean value which indicates that a modification to
-the system has resulted in an increase of the cost function and
-another boolean value which indicates if a modification was
-discarded."
+This function returns four values: a new value of the system's
+temperature, a new value of the cost function, a boolean value which
+indicates that a modification to the system has resulted in an
+increase of the cost function and another boolean value which
+indicates if a modification was discarded."
   (declare (optimize (speed 3))
            (type image system target)
            (type double-float temp)
@@ -45,6 +45,7 @@ discarded."
 
     (values
      (funcall cooldown temp cost2)
+     (if rejected cost1 cost2)
      accepted rejected)))
 
 (defun run-annealing (system target t0 n &key cost modifier cooldown)
@@ -52,17 +53,20 @@ discarded."
 steps. See also @c(annealing-step)."
   (let ((temp t0)
         (rejected 0)
-        (accepted 0))
+        (accepted 0)
+        cost-list)
     (loop for steps below n do
-      (multiple-value-bind (new-temp step-acc step-rej)
+      (multiple-value-bind (new-temp step-cost step-acc step-rej)
           (annealing-step system target temp
                           :cost     cost
                           :modifier modifier
                           :cooldown cooldown)
+        (push step-cost cost-list)
         (setq temp new-temp)
         (incf rejected (if step-rej 1 0))
         (incf accepted (if step-acc 1 0)))
       (when (zerop (rem steps 1000))
         (format t "~d steps, ~d accepted, ~d rejected, ~f temp, ~f cost~%"
                 steps accepted rejected temp
-                (funcall cost system target))))))
+                (funcall cost system target))))
+    (reverse cost-list)))
