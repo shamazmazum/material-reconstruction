@@ -4,16 +4,16 @@ __kernel void sparse_ft2d (__global double *real,
                            __global double *imag,
                            unsigned int kx,
                            unsigned int ky,
+                           unsigned int w,
+                           unsigned int h,
                            double c) {
-    size_t h  = get_global_size(0);
-    size_t w  = get_global_size(1);
     size_t iy = get_global_id(0);
     size_t ix = get_global_id(1);
 
     double alpha = (double)kx * (double)ix / (double)w;
     double beta  = (double)ky * (double)iy / (double)h;
     double angle = 2 * M_PI * (alpha + beta);
-    size_t idx  = iy*w + ix;
+    size_t idx  = iy * (w/2 + 1) + ix;
 
     real[idx] += c * cos(angle);
     imag[idx] -= c * sin(angle);
