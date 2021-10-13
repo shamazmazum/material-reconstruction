@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+  Overview &ndash; Material Reconstruction
+</title>
+    <link rel="stylesheet" href="static/style.css"/>
+    
+  <link rel="stylesheet" href="static/highlight.css"/>
+  <script src="static/highlight.js"></script>
+  <style>
+   /* Highlight the current top-level TOC item, and hide the TOC of all other items */
+
+   .toc a[data-node="index"] {
+       /*color: #AD3108;*/
+   }
+
+   .toc ol {
+       display: none;
+   }
+
+   .toc li a[data-node="index"] {
+       font-weight: bold;
+   }
+
+   .toc li a[data-node="index"] + ol {
+       display: block;
+   }
+
+   .toc li a[data-node="index"] + ol li {
+       margin-left: 10px;
+   }
+  </style>
+
+  </head>
+  <body>
+    
+  <h1 class="doc-title">Material Reconstruction</h1>
+  <article id="article" data-section="index">
+    <aside>
+      <ol class="toc"><li><a href="index.html" data-node="index">Overview</a></li><li><a href="dependencies.html" data-node="dependencies">Dependencies</a></li><li><a href="example.html" data-node="example">Example</a></li><li><a href="api.html" data-node="api">API</a></li></ol>
+    </aside>
+    <main class="codex-section">
+      <header>
+        <h2 class="section-title">Overview</h2>
+      </header>
+      <div class="content">
+        <p>
+   <code>material-reconstruction</code> is a tool which helps to restore 2D images
+   according to their two-point correlation function using the algorithm called
+   simulated annealing.</p><p>   According to Salvatore Torquato's book &quot;Random Heterogeneous Materials&quot;,
+   two-point correlation function is defined as follows.
+   </p><blockquote>      The two-point or autocorrelation function S₂(r) = S₂¹(r) for statistically
+   homogeneous media can be obtained by randomly tossing line segments of length
+   r with a specified orientation [into the image] and counting the fraction of
+   times the end points fall in phase 1.
+   </blockquote><p>   The term &quot;phase&quot; means just a value of a pixel in an image. This library
+   works with two-phase images which means its pixels can have a value <code>0</code> or
+   <code>1</code>.
+</p>
+      </div>
+    </main>
+  </article>
+  <footer>
+    <div class="info">
+      Created with <a href="https://github.com/CommonDoc/codex">Codex</a>.
+    </div>
+  </footer>
+  <script>
+   HighlightLisp.highlight_auto();
+  </script>
+
+  </body>
+</html>
