@@ -13,7 +13,7 @@
                  '(annealing))))
 
 (defun create-image-with-noise (h w)
-  (let ((array (make-array (list h w) :element-type '(signed-byte 8))))
+  (let ((array (make-array (list h w) :element-type 'bit)))
     (array-operations/utilities:nested-loop (i j)
         (array-dimensions array)
       (setf (aref array i j)
@@ -29,20 +29,20 @@
                                           :sampler (make-instance 'interface-sampler))))
 
 (defun test-annealing (steps &key (side 300) (t0 1d-5))
-  (with-gpu-context (ctx)
-    (with-images ((recon  ctx side side)
-                  (target ctx side side))
-      (load-image target (create-image-with-noise side side))
-      (initialize-random recon target)
-      (with-proximeter (proximeter recon target)
-        (let ((cost     (s2-cost proximeter))
-              (cooldown (aarts-korst-cooldown :n 50 :alpha 0.03d0))
-              (modifier (make-modifier)))
-          (run-annealing recon target t0 steps
-                         :cost     cost
-                         :cooldown cooldown
-                         :modifier modifier)
-          (funcall cost recon target))))))
+  (let* ((target-array  (create-image-with-noise side side))
+         (initial-array (initialize-random target-array)))
+    (with-gpu-context (ctx)
+      (with-images ((recon  ctx initial-array)
+                    (target ctx target-array))
+        (with-proximeter (proximeter recon target)
+          (let ((cost     (s2-cost proximeter))
+                (cooldown (aarts-korst-cooldown :n 50 :alpha 0.03d0))
+                (modifier (make-modifier)))
+            (run-annealing recon target t0 steps
+                           :cost     cost
+                           :cooldown cooldown
+                           :modifier modifier)
+            (funcall cost recon target)))))))
 
 (in-suite annealing)
 (test annealing
