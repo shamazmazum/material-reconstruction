@@ -12,12 +12,9 @@ phases as in @c(target). @c(target) must be a binary 2D array."
                                           :initial-element 0)
         with phase-target   = (count-foreground-phase target)
         with phase-init     = 0
-        with height         = (array-dimension init 0)
-        with width          = (array-dimension init 1)
         while (< phase-init phase-target) do
-          (let ((x (random width))
-                (y (random height)))
-            (when (zerop (aref init y x))
+          (let ((random-coord (mapcar #'random (array-dimensions target))))
+            (when (zerop (apply #'aref init random-coord))
               (incf phase-init)
-              (setf (aref init y x) 1)))
+              (setf (apply #'aref init random-coord) 1)))
         finally (return init)))

@@ -8,54 +8,46 @@
   (declare (type gpu-context context))
   (make-image
    :array array
-   :sap (%create-image2d
+   :sap (%create-image
          (context-sap context)
          array)))
 
 (defun destroy-image (image)
   "Destroy an image"
   (declare (type image image))
-  (%destroy-image2d (image-sap image)))
+  (%destroy-image (image-sap image)))
 
-(declaim (ftype
-          (function (image)
-                    (values (unsigned-byte 32) &optional))
-          image-width image-height))
+(declaim
+ (ftype
+  (function (image) (values list &optional))
+  image-dimensions))
 
-(defun image-height (image)
+(defun image-dimensions (image)
   (declare (type image image))
-  (array-dimension (image-array image) 0))
+  (array-dimensions (image-array image)))
 
-(defun image-width (image)
+(declaim (ftype
+          (function (image (cons (unsigned-byte 32)))
+                    (values bit &optional))
+          image-pixel))
+(defun image-pixel (image coord)
+  "Get image pixel at coordinates specified by @c(coord) in row-major
+order."
   (declare (type image image))
-  (array-dimension (image-array image) 1))
+  (apply #'aref (image-array image) coord))
 
 (declaim (ftype
-          (function (image (unsigned-byte 32)
-                           (unsigned-byte 32))
+          (function (bit image (cons (unsigned-byte 32)))
                     (values bit &optional))
-          image-get))
-(defun image-get (image x y)
-  "Get image pixel at coordinates @c((x, y))."
+          (setf image-pixel)))
+(defun (setf image-pixel) (val image coord)
+  "Set image pixel at coordinates specified by @c(coord) in row-major
+order to @c(val)."
   (declare (type image image)
-           (type (unsigned-byte 32) x y))
-  (aref (image-array image) y x))
-
-(declaim (ftype
-          (function (image
-                     (unsigned-byte 32)
-                     (unsigned-byte 32)
-                     bit)
-                    (values bit &optional))
-          image-set))
-(defun image-set (image x y val)
-  "Store @c(val) to image pixel at coordinates @c((x, y))"
-  (declare (type image image)
-           (type (unsigned-byte 32) x y)
            (type bit val))
-  (let ((delta (- val (aref (image-array image) y x))))
-    (setf (aref (image-array image) y x) val)
-    (%image2d-update-fft (image-sap image) y x delta))
+  (let ((delta (- val (image-pixel image coord))))
+    (setf (apply #'aref (image-array image) coord) val)
+    (%image-update-fft (image-sap image) delta coord))
   val)
 
 (defmacro with-image ((image context array) &body body)

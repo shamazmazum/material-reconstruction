@@ -19,39 +19,33 @@ two phases"))
 (defclass uniform-sampler (sampler) ()
   (:documentation "Take samples uniformly over the whole image"))
 
-(defmethod sample ((sampler interface-sampler) image)
+(defgeneric random-direction (dimensions)
+  (:documentation "Generate unit vector in random direction"))
+
+(defmethod random-direction ((dimensions (eql 2)))
   (declare (optimize (speed 3)))
-  (let ((width (image-width image))
-        (height (image-height image)))
-    (loop with start-x  single-float = (float (random width) 0f0)
-          with start-y  single-float = (float (random height) 0f0)
-          with angle    single-float = (random (* 2 (float pi 0f0)))
-          with delta-x  single-float = (cos angle)
-          with delta-y  single-float = (sin angle)
-          with init-val fixnum       = (image-get image
-                                                  (round start-x)
-                                                  (round start-y))
-          do
-             (incf start-x delta-x)
-             (incf start-y delta-y)
-             (let ((x (round start-x))
-                   (y (round start-y)))
-               (declare (type (signed-byte 32) x y))
-               (cond
-                 ((or (>= x width)
-                      (>= y height)
-                      (<  x 0)
-                      (<  y 0))
-                  (return-from sample (sample sampler image)))
-                 ((/= (image-get image x y) init-val)
-                  (return-from sample (values x y))))))))
+  (let ((angle (random (* 2 (float pi 0f0)))))
+    (list (sin angle) (cos angle))))
+
+(defmethod sample ((sampler interface-sampler) image)
+  (loop with dimensions      = (image-dimensions image)
+        with coord           = (mapcar #'random dimensions)
+        with delta           = (random-direction (length dimensions))
+        with init-val fixnum = (image-pixel image coord)
+        do
+           (setf coord (mapcar #'+ coord delta))
+           (let ((coord (mapcar #'round coord)))
+             (cond
+               ((some
+                 (lambda (x boundary)
+                   (or (>= x boundary) (< x 0)))
+                 coord dimensions)
+                (return-from sample (sample sampler image)))
+               ((/= (image-pixel image coord) init-val)
+                (return-from sample coord))))))
 
 (defmethod sample ((sampler uniform-sampler) image)
-  (declare (optimize (speed 3)))
-  (let ((width (image-width image))
-        (height (image-height image)))
-    (values (random width)
-            (random height))))
+  (mapcar #'random (image-dimensions image)))
 
 (defclass flipper (modifier)
   ((sampler :reader   modifier-sampler
@@ -63,18 +57,15 @@ two phases"))
 
 (defmethod modify ((flipper flipper) image)
   (declare (optimize (speed 3)))
-  (multiple-value-bind (x y)
-      (sample (modifier-sampler flipper) image)
-    (declare (type (unsigned-byte 32) x y))
-    (image-set image x y
-               (- 1 (image-get image x y)))
-    (cons x y)))
+  (let ((coord (sample (modifier-sampler flipper) image)))
+    (setf (image-pixel image coord)
+          (- 1 (image-pixel image coord)))
+    coord))
 
 (defmethod rollback ((flipper flipper) image state)
   (declare (optimize (speed 3)))
-  (destructuring-bind (x . y) state
-    (declare (type (unsigned-byte 32) x y))
-    (image-set image x y (- 1 (image-get image x y)))))
+  (setf (image-pixel image state)
+        (- 1 (image-pixel image state))))
 
 (defclass swapper (modifier)
   ((sampler :reader   modifier-sampler
@@ -86,33 +77,25 @@ phases."))
 
 (defmethod modify ((swapper swapper) image)
   (declare (optimize (speed 3)))
-  (multiple-value-bind (x1 y1)
-      (sample (modifier-sampler swapper) image)
-    (declare (type (unsigned-byte 32) x1 y1))
-    (multiple-value-bind (x2 y2)
-        (sample (modifier-sampler swapper) image)
-      (declare (type (unsigned-byte 32) x2 y2))
-      (let ((sample1 (image-get image x1 y1))
-            (sample2 (image-get image x2 y2)))
-        (cond
-          ((= sample1 sample2)
-           (modify swapper image))
-          (t
-           (image-set image x1 y1 sample2)
-           (image-set image x2 y2 sample1)
-           (list
-            (cons x1 y1)
-            (cons x2 y2))))))))
+  (let* ((coord1 (sample (modifier-sampler swapper) image))
+         (coord2 (sample (modifier-sampler swapper) image))
+         (sample1 (image-pixel image coord1))
+         (sample2 (image-pixel image coord2)))
+    (cond
+      ((= sample1 sample2)
+       (modify swapper image))
+      (t
+       (setf (image-pixel image coord1) sample2
+             (image-pixel image coord2) sample1)
+       (list coord1 coord2)))))
 
 (defmethod rollback ((swapper swapper) image state)
-  (declare (optimize (speed 3)))
-  (destructuring-bind ((x1 . y1)
-                       (x2 . y2))
+  (destructuring-bind (coord1 coord2)
       state
-    (let ((sample1 (image-get image x1 y1))
-          (sample2 (image-get image x2 y2)))
-      (image-set image x2 y2 sample1)
-      (image-set image x1 y1 sample2))))
+    (let ((sample1 (image-pixel image coord1))
+          (sample2 (image-pixel image coord2)))
+      (setf (image-pixel image coord2) sample1
+            (image-pixel image coord1) sample2))))
 
 (defclass batch-modifier (modifier)
   ((modifier :initarg  :modifier

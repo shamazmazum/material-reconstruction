@@ -7,6 +7,8 @@
 
 #include "anneal-ocl.h"
 
+#define AN_MAX_DIMENSIONS 3
+
 struct an_gpu_context {
     cl_context       context;
     cl_command_queue queue;
@@ -19,19 +21,42 @@ struct an_gpu_context {
     size_t group_size;
 };
 
-struct an_image2d {
+struct an_image {
     struct an_gpu_context *ctx;
     cl_mem                 real;
     cl_mem                 imag;
-    cl_uint                w, h;
+    cl_uint                dimensions[AN_MAX_DIMENSIONS];
+    unsigned int           ndims;
 };
 
 struct an_proximeter {
     struct an_gpu_context *ctx;
-    struct an_image2d     *image1;
-    struct an_image2d     *image2;
+    struct an_image       *image1;
+    struct an_image       *image2;
     cl_mem                 tmp;
 };
+
+struct an_array_sizes {
+    size_t real;
+    size_t complex;
+};
+
+static struct an_array_sizes
+an_get_array_sizes (const cl_uint *dimensions,
+                    unsigned int   ndims) {
+    struct an_array_sizes result;
+    size_t size = 1;
+    unsigned int i;
+
+    for (i=0; i<ndims; i++) {
+        size *= dimensions[i];
+    }
+
+    result.real = size;
+    result.complex = result.real / dimensions[i-1] * (dimensions[i-1]/2 + 1);
+
+    return result;
+}
 
 /* Context handling */
 void an_destroy_gpu_context (struct an_gpu_context *ctx) {
@@ -148,7 +173,7 @@ bad:
 /* Image handling */
 
 /* Calculate FFT and upload to the GPU */
-static int an_image2d_fft (struct an_image2d *image, const uint8_t *array) {
+static int an_image_fft (struct an_image *image, const uint8_t *array) {
     // Input and output arrays
     double       *in;
     fftw_complex *out;
@@ -157,16 +182,15 @@ static int an_image2d_fft (struct an_image2d *image, const uint8_t *array) {
     fftw_plan p;
 
     // Dimensions
-    unsigned int i;
-    unsigned int n_real    = image->h * image->w;
-    unsigned int n_complex = image->h * (image->w/2 + 1);
+    size_t i;
+    struct an_array_sizes asizes = an_get_array_sizes (image->dimensions, image->ndims);
 
     // Success
     int ok = 1;
 
-    in  = fftw_malloc(sizeof(double)       * n_real);
-    out = fftw_malloc(sizeof(fftw_complex) * n_complex);
-    p   = fftw_plan_dft_r2c_2d (image->h, image->w, in, out, FFTW_ESTIMATE);
+    in  = fftw_malloc(sizeof(double)       * asizes.real);
+    out = fftw_malloc(sizeof(fftw_complex) * asizes.complex);
+    p   = fftw_plan_dft_r2c (image->ndims, (const int*)image->dimensions, in, out, FFTW_ESTIMATE);
 
     if (p == NULL) {
         ok = 0;
@@ -174,7 +198,7 @@ static int an_image2d_fft (struct an_image2d *image, const uint8_t *array) {
     }
 
     // Copy data to the input array and calculate FFT
-    for (i=0; i < n_real; i++) {
+    for (i=0; i < asizes.real; i++) {
         in[i] = array[i];
     }
 
@@ -182,15 +206,17 @@ static int an_image2d_fft (struct an_image2d *image, const uint8_t *array) {
 
     // Copy to GPU
     cl_double *real_buf = clEnqueueMapBuffer (image->ctx->queue, image->real, CL_TRUE, CL_MAP_WRITE,
-                                             0, sizeof(cl_double) * n_complex, 0, NULL, NULL, NULL);
+                                              0, sizeof(cl_double) * asizes.complex,
+                                              0, NULL, NULL, NULL);
     cl_double *imag_buf = clEnqueueMapBuffer (image->ctx->queue, image->imag, CL_TRUE, CL_MAP_WRITE,
-                                             0, sizeof(cl_double) * n_complex, 0, NULL, NULL, NULL);
+                                              0, sizeof(cl_double) * asizes.complex,
+                                              0, NULL, NULL, NULL);
     if (real_buf == NULL || imag_buf == NULL) {
         ok = 0;
         goto cleanup;
     }
 
-    for (i=0; i < n_complex; i++) {
+    for (i=0; i < asizes.complex; i++) {
         real_buf[i] = out[i][0];
         imag_buf[i] = out[i][1];
     }
@@ -215,7 +241,7 @@ cleanup:
     return ok;
 }
 
-void an_destroy_image2d (struct an_image2d *image) {
+void an_destroy_image (struct an_image *image) {
     if (image->imag != NULL) {
         clReleaseMemObject (image->imag);
     }
@@ -227,34 +253,41 @@ void an_destroy_image2d (struct an_image2d *image) {
     free (image);
 }
 
-struct an_image2d*
-an_create_image2d (struct an_gpu_context *ctx,
-                   const uint8_t         *array,
-                   unsigned int           w,
-                   unsigned int           h) {
-    unsigned int n_complex = h * (w/2 + 1);
-    struct an_image2d *image = malloc (sizeof (struct an_image2d));
+struct an_image*
+an_create_image (struct an_gpu_context *ctx,
+                 const cl_uchar        *array,
+                 const cl_uint         *dimensions,
+                 unsigned int           ndims) {
+    if (ndims > AN_MAX_DIMENSIONS) {
+        fprintf (stderr, "Number of dimensions is too high: %u", ndims);
+        return NULL;
+    }
 
-    memset (image, 0, sizeof (struct an_image2d));
-    image->ctx = ctx;
-    image->w = w;
-    image->h = h;
+    struct an_array_sizes asizes = an_get_array_sizes (dimensions, ndims);
+    struct an_image *image = malloc (sizeof (struct an_image));
+
+    memset (image, 0, sizeof (struct an_image));
+    memcpy (&image->dimensions[0], dimensions, sizeof (cl_uint) * ndims);
+    image->ctx   = ctx;
+    image->ndims = ndims;
 
     image->real = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                  n_complex * sizeof(cl_double), NULL, NULL);
+                                  asizes.complex * sizeof(cl_double), NULL, NULL);
     if (image->real == NULL) {
-        fprintf (stderr, "Cannot allocate an image %ux%u\n", w, h);
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
+                 asizes.complex);
         goto bad;
     }
 
     image->imag = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                  n_complex * sizeof(cl_double), NULL, NULL);
+                                  asizes.complex * sizeof(cl_double), NULL, NULL);
     if (image->imag == NULL) {
-        fprintf (stderr, "Cannot allocate an image %ux%u\n", w, h);
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
+                 asizes.complex);
         goto bad;
     }
 
-    if (!an_image2d_fft (image, array)) {
+    if (!an_image_fft (image, array)) {
         fprintf (stderr, "Failed to perform FFT\n");
         goto bad;
     }
@@ -262,16 +295,37 @@ an_create_image2d (struct an_gpu_context *ctx,
     return image;
 
 bad:
-    an_destroy_image2d (image);
+    an_destroy_image (image);
     return NULL;
 }
 
-void an_image2d_update_fft (struct an_image2d *image,
-                            unsigned int       y,
-                            unsigned int       x,
-                            int8_t             delta) {
+void an_image_update_fft (struct an_image *image,
+                          const cl_uint   *coord,
+                          unsigned int     ndims,
+                          cl_char          delta) {
+    if (ndims != 2) {
+        fprintf (stderr, "Cannot work with multidimensional images\n");
+        return;
+    }
+
+    if (ndims != image->ndims) {
+        fprintf (stderr, "Wrong dimensions\n");
+        return;
+    }
+
+    cl_uint y = coord[0];
+    cl_uint x = coord[1];
+    cl_uint h = image->dimensions[0];
+    cl_uint w = image->dimensions[1];
+
     struct an_gpu_context *ctx = image->ctx;
-    size_t dim[2];
+    int i;
+    size_t dim[AN_MAX_DIMENSIONS];
+
+    for (i=0; i<image->ndims; i++) {
+        dim[i] = image->dimensions[i];
+    }
+    dim[i-1] = dim[i-1]/2 + 1;
 
     // Recalculate FT on GPU
     cl_double d = delta;
@@ -279,27 +333,13 @@ void an_image2d_update_fft (struct an_image2d *image,
     clSetKernelArg (ctx->sparse_ft2d, 1, sizeof(cl_mem),    &image->imag);
     clSetKernelArg (ctx->sparse_ft2d, 2, sizeof(cl_uint),   &x);
     clSetKernelArg (ctx->sparse_ft2d, 3, sizeof(cl_uint),   &y);
-    clSetKernelArg (ctx->sparse_ft2d, 4, sizeof(cl_uint),   &image->w);
-    clSetKernelArg (ctx->sparse_ft2d, 5, sizeof(cl_uint),   &image->h);
+    clSetKernelArg (ctx->sparse_ft2d, 4, sizeof(cl_uint),   &w);
+    clSetKernelArg (ctx->sparse_ft2d, 5, sizeof(cl_uint),   &h);
     clSetKernelArg (ctx->sparse_ft2d, 6, sizeof(cl_double), &d);
 
-    dim[0] = image->h;
-    dim[1] = image->w/2 + 1;
     clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft2d,
                             2, NULL, dim, NULL, 0, NULL, NULL);
     clFinish(ctx->queue);
-}
-
-void an_image_get_fft (struct an_image2d *image, double *real, double *imag) {
-    struct an_gpu_context *ctx = image->ctx;
-    unsigned int n_complex = image->h * (image->w/2 + 1);
-
-    clEnqueueReadBuffer (ctx->queue, image->real, CL_TRUE, 0,
-                         n_complex * sizeof(cl_double),
-                         real, 0, NULL, NULL);
-    clEnqueueReadBuffer (ctx->queue, image->imag, CL_TRUE, 0,
-                         n_complex * sizeof(cl_double),
-                         imag, 0, NULL, NULL);
 }
 
 // Proximeter (metric calculation)
@@ -311,15 +351,17 @@ void an_destroy_proximeter (struct an_proximeter *proximeter) {
     free (proximeter);
 }
 
-struct an_proximeter* an_create_proximeter (struct an_image2d *image1,
-                                            struct an_image2d *image2) {
-    if (image1->ctx != image2->ctx ||
-        image1->w   != image2->w   ||
-        image1->h   != image2->h) {
+struct an_proximeter* an_create_proximeter (struct an_image *image1,
+                                            struct an_image *image2) {
+    if (image1->ctx   != image2->ctx   ||
+        image1->ndims != image2->ndims ||
+        memcmp (image1->dimensions,
+                image2->dimensions,
+                sizeof(cl_uint) * image1->ndims) != 0) {
         return NULL;
     }
 
-    unsigned int n_complex = image1->h * (image1->w/2 + 1);
+    struct an_array_sizes asizes = an_get_array_sizes (image1->dimensions, image1->ndims);
     struct an_proximeter *proximeter = malloc (sizeof (struct an_proximeter));
     memset (proximeter, 0, sizeof (struct an_proximeter));
     proximeter->image1 = image1;
@@ -327,9 +369,10 @@ struct an_proximeter* an_create_proximeter (struct an_image2d *image1,
     proximeter->ctx    = image1->ctx;
 
     proximeter->tmp = clCreateBuffer (proximeter->ctx->context, CL_MEM_READ_WRITE,
-                                      n_complex * sizeof(cl_double), NULL, NULL);
+                                      asizes.complex * sizeof(cl_double), NULL, NULL);
     if (proximeter->tmp == NULL) {
-        fprintf (stderr, "Cannot allocate a temporary buffer 1x%u\n", n_complex);
+        fprintf (stderr, "Cannot allocate a temporary buffer (%lu doubles)\n",
+                 asizes.complex);
         goto bad;
     }
 
@@ -343,14 +386,15 @@ bad:
 cl_double an_proximity (struct an_proximeter *proximeter) {
     cl_double metric;
 
-    struct an_image2d *image1  = proximeter->image1;
-    struct an_image2d *image2  = proximeter->image2;
+    struct an_image *image1  = proximeter->image1;
+    struct an_image *image2  = proximeter->image2;
     struct an_gpu_context *ctx = proximeter->ctx;
+    struct an_array_sizes asizes = an_get_array_sizes (image1->dimensions, image1->ndims);
 
     size_t gs   = ctx->group_size;
     size_t gssq = gs * gs;
 
-    cl_ulong dim1 = image1->h * (image1->w/2 + 1);
+    cl_ulong dim1 = asizes.complex;
     cl_ulong dim2 = gs;
 
     clSetKernelArg (ctx->metric, 0, sizeof(cl_mem), &image1->real);

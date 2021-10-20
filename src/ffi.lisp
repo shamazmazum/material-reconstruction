@@ -9,7 +9,7 @@
 (use-foreign-library libanneal-ocl)
 
 (defctype gpu-context :pointer)
-(defctype image2d     :pointer)
+(defctype image       :pointer)
 (defctype proximeter  :pointer)
 
 (defcfun ("an_create_gpu_context" %%create-gpu-context) gpu-context
@@ -25,39 +25,49 @@
   (ctx gpu-context))
 
 
-(defcfun ("an_create_image2d" %%create-image2d) image2d
-  (ctx   gpu-context)
-  (array :pointer)
-  (w     :uint)
-  (h     :uint))
+(defcfun ("an_create_image" %%create-image) image
+  (ctx        gpu-context)
+  (array      :pointer)
+  (dimensions :pointer)
+  (ndims      :uint))
 
-(defun %create-image2d (ctx array)
-  (declare (type (simple-array bit (* *)) array))
-  (let ((height (array-dimension array 0))
-        (width  (array-dimension array 1))
-        (buffer (map-into
+(defun %create-image (ctx array)
+  (declare (type (simple-array bit) array))
+  (let ((buffer (map-into
                  (make-shareable-byte-vector
                   (array-total-size array))
                  #'identity
-                 (aops:flatten array))))
+                 (aops:flatten array)))
+        ;; XXX: Not "shareable array", but OK for SBCL
+        (dimensions (map '(vector (unsigned-byte 32))
+                         #'identity
+                         (array-dimensions array))))
     (with-pointer-to-vector-data (buffer-ptr buffer)
-      (let ((image (%%create-image2d ctx buffer-ptr width height)))
-        (when (null-pointer-p image)
-          (error 'gpu-context-error))
-        image))))
+      (with-pointer-to-vector-data (dimensions-ptr dimensions)
+        (let ((image (%%create-image ctx buffer-ptr dimensions-ptr (length dimensions))))
+          (when (null-pointer-p image)
+            (error 'gpu-context-error))
+          image)))))
 
-(defcfun ("an_destroy_image2d" %destroy-image2d) :void
-  (image image2d))
+(defcfun ("an_destroy_image" %destroy-image) :void
+  (image image))
 
-(defcfun ("an_image2d_update_fft" %image2d-update-fft) :void
-  (image image2d)
-  (y     :uint)
-  (x     :uint)
+(defcfun ("an_image_update_fft" %%image-update-fft) :void
+  (image image)
+  (coord :pointer)
+  (ndims :uint)
   (delta :int8))
 
+(defun %image-update-fft (image delta coord)
+  ;; XXX: coord is not "shareable array", but OK for SBCL
+  (let ((coord (map '(vector (unsigned-byte 32))
+                    #'identity coord)))
+    (with-pointer-to-vector-data (coord-ptr coord)
+      (%%image-update-fft image coord-ptr (length coord) delta))))
+
 (defcfun ("an_create_proximeter" %%create-proximeter) proximeter
-  (image1 image2d)
-  (image2 image2d))
+  (image1 image)
+  (image2 image))
 
 (defun %create-proximeter (image1 image2)
   (let ((proximeter (%%create-proximeter image1 image2)))
