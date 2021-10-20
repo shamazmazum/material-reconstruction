@@ -7,7 +7,7 @@ struct an_gpu_context;
 struct an_image2d;
 struct an_proximeter;
 
-struct an_gpu_context* an_create_gpu_context (const char *program_path);
+struct an_gpu_context* an_create_gpu_context (const char *program);
 void an_destroy_gpu_context (struct an_gpu_context *ctx);
 
 struct an_image2d*
