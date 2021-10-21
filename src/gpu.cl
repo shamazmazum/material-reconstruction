@@ -1,20 +1,29 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
-__kernel void sparse_ft2d (__global double *real,
-                           __global double *imag,
-                           unsigned int kx,
-                           unsigned int ky,
-                           unsigned int w,
-                           unsigned int h,
-                           double c) {
-    size_t iy = get_global_id(0);
-    size_t ix = get_global_id(1);
+#define MAX_DIMENSIONS 3
 
-    double alpha = (double)kx * (double)ix / (double)w;
-    double beta  = (double)ky * (double)iy / (double)h;
-    double angle = 2 * M_PI * (alpha + beta);
-    size_t idx  = iy * (w/2 + 1) + ix;
+struct update_data {
+    unsigned int dimensions[MAX_DIMENSIONS];
+    unsigned int point[MAX_DIMENSIONS];
+    unsigned int stride[MAX_DIMENSIONS];
+    unsigned int ndims;
+};
 
+__kernel void sparse_ft (__global double   *real,
+                         __global double   *imag,
+                         struct update_data upd,
+                         double c) {
+    double angle = 0;
+    size_t idx = 0;
+    unsigned int i;
+
+    for (i=0; i<upd.ndims; i++) {
+        size_t id = get_global_id(i);
+        angle += (double)upd.point[i] * (double)id / (double)upd.dimensions[i];
+        idx += upd.stride[i] * id;
+    }
+
+    angle = 2 * M_PI * angle;
     real[idx] += c * cos(angle);
     imag[idx] -= c * sin(angle);
 }
@@ -26,7 +35,6 @@ __kernel void metric (__global double *real1,
                       __global double *output) {
     size_t idx = get_global_id(0);
 
-    // TODO: check what actually we are minimizing
     double abs_sq1 = pown(real1[idx], 2) + pown(imag1[idx], 2);
     double abs_sq2 = pown(real2[idx], 2) + pown(imag2[idx], 2);
 
