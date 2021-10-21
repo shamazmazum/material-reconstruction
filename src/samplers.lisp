@@ -24,8 +24,17 @@ two phases"))
 
 (defmethod random-direction ((dimensions (eql 2)))
   (declare (optimize (speed 3)))
-  (let ((angle (random (* 2 (float pi 0f0)))))
-    (list (sin angle) (cos angle))))
+  (let ((ϕ (random (* 2 pi))))
+    (list (sin ϕ) (cos ϕ))))
+
+(defmethod random-direction ((dimensions (eql 3)))
+  (declare (optimize (speed 3)))
+  (let ((ϕ (random (* 2 pi)))
+        (ψ (- (random pi) (/ pi 2))))
+    (list
+     (sin ψ)
+     (* (cos ψ) (sin ϕ))
+     (* (cos ψ) (cos ϕ)))))
 
 (defmethod sample ((sampler interface-sampler) image)
   (loop with dimensions      = (image-dimensions image)

@@ -6,7 +6,7 @@
 ;; This is generally for tests
 (defun initialize-random (target)
   "Create an array with random data with the same ratio of binary
-phases as in @c(target). @c(target) must be a binary 2D array."
+phases as in @c(target). @c(target) must be a binary array."
   (loop with init           = (make-array (array-dimensions target)
                                           :element-type 'bit
                                           :initial-element 0)
