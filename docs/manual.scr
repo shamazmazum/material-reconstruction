@@ -1,6 +1,6 @@
 @begin[ref=index](section)
    @title(Overview)
-   @c(material-reconstruction) is a tool which helps to restore 2D images
+   @c(material-reconstruction) is a tool which helps to restore 2D and 3D images
    according to their two-point correlation function using the algorithm called
    simulated annealing.
 
@@ -40,10 +40,10 @@
   (:export #:test-annealing))
 (in-package :annealing-test)
 
-(defun read-image (name h w)
+(defun read-image (name dimensions)
   "Read a binary file into an array of octets."
-  (let* ((array (make-array (list h w) :element-type 'bit))
-         (displaced (make-array (* w h)
+  (let* ((array (make-array dimensions :element-type 'bit))
+         (displaced (make-array (reduce #'* dimensions)
                                 :element-type 'bit
                                 :displaced-to array
                                 :displaced-index-offset 0)))
@@ -59,14 +59,14 @@ the opposite."
                  :modifier (make-instance 'flipper
                                           :sampler (make-instance 'interface-sampler))))
 
-(defun test-annealing (original initial steps &key (side 300) (t0 1d-5))
+(defun test-annealing (original initial steps &key dimensions (t0 1d-5))
   "Run simulation of annealing for STEPS steps. INITIAL is the name of a
 file with initial approximation of ORIGINAL. ORIGINAL and INITIAL are
-file names of images with dimension SIDExSIDE in raw format. T0 is
-initial temperature of the system."
+file names of images with dimensions stored in the list DIMENSIONS in raw
+format. T0 is initial temperature of the system."
   ;; Load images
-  (let ((original-array (read-image original side side))
-        (initial-array  (read-image initial  side side)))
+  (let ((original-array (read-image original dimensions))
+        (initial-array  (read-image initial  dimensions)))
     ;; Create GPU context
     (with-gpu-context (ctx)
       ;; Upload images to GPU
@@ -114,8 +114,7 @@ initial temperature of the system."
       @cl:doc(struct image)
       @cl:doc(function create-image)
       @cl:doc(function destroy-image)
-      @cl:doc(function image-get)
-      @cl:doc(function image-set)
+      @cl:doc(function image-pixel)
       @cl:doc(macro with-image)
       @cl:doc(macro with-images)
    )
@@ -161,9 +160,4 @@ initial temperature of the system."
       @cl:doc(function run-annealing)
    )
 
-   @u(Other functions)
-   @cl:with-package[name="material-reconstruction"](
-      @cl:doc(function image->array)
-   )
-  
 @end(section)

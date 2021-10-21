@@ -14,10 +14,8 @@
            #:image
            #:create-image
            #:destroy-image
-           #:image-get
-           #:image-set
-           #:image-width
-           #:image-height
+           #:image-pixel
+           #:image-dimensions
            #:image-array
            #:with-image
            #:with-images

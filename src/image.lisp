@@ -1,6 +1,8 @@
 (in-package :material-reconstruction)
 
 (defstruct image
+  "Structure which represents an image on GPU. It can be created from
+an array using @c(create-image)."
   array sap)
 
 (defun create-image (context array)
