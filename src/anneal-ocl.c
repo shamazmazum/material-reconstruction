@@ -9,12 +9,19 @@
 
 #define AN_MAX_DIMENSIONS 3
 
+struct an_update_data {
+    cl_uint dimensions[AN_MAX_DIMENSIONS];
+    cl_uint point[AN_MAX_DIMENSIONS];
+    cl_uint stride[AN_MAX_DIMENSIONS];
+    cl_uint ndims;
+};
+
 struct an_gpu_context {
     cl_context       context;
     cl_command_queue queue;
     cl_program       program;
 
-    cl_kernel sparse_ft2d;
+    cl_kernel sparse_ft;
     cl_kernel metric;
     cl_kernel reduce;
 
@@ -66,8 +73,8 @@ void an_destroy_gpu_context (struct an_gpu_context *ctx) {
     if (ctx->metric != NULL) {
         clReleaseKernel (ctx->metric);
     }
-    if (ctx->sparse_ft2d != NULL) {
-        clReleaseKernel (ctx->sparse_ft2d);
+    if (ctx->sparse_ft != NULL) {
+        clReleaseKernel (ctx->sparse_ft);
     }
     if (ctx->program != NULL) {
         clReleaseProgram (ctx->program);
@@ -145,8 +152,8 @@ struct an_gpu_context* an_create_gpu_context (const char *program) {
         goto bad;
     }
 
-    ctx->sparse_ft2d = clCreateKernel(ctx->program, "sparse_ft2d", NULL);
-    if (ctx->sparse_ft2d == NULL) {
+    ctx->sparse_ft = clCreateKernel(ctx->program, "sparse_ft", NULL);
+    if (ctx->sparse_ft == NULL) {
         fprintf (stderr, "Cannot create sparse FT kernel\n");
         goto bad;
     }
@@ -303,42 +310,42 @@ void an_image_update_fft (struct an_image *image,
                           const cl_uint   *coord,
                           unsigned int     ndims,
                           cl_char          delta) {
-    if (ndims != 2) {
-        fprintf (stderr, "Cannot work with multidimensional images\n");
-        return;
-    }
+    unsigned int i, j;
+    struct an_update_data upd;
+    size_t dim[AN_MAX_DIMENSIONS];
 
     if (ndims != image->ndims) {
         fprintf (stderr, "Wrong dimensions\n");
         return;
     }
 
-    cl_uint y = coord[0];
-    cl_uint x = coord[1];
-    cl_uint h = image->dimensions[0];
-    cl_uint w = image->dimensions[1];
-
-    struct an_gpu_context *ctx = image->ctx;
-    int i;
-    size_t dim[AN_MAX_DIMENSIONS];
+    upd.ndims = image->ndims;
 
     for (i=0; i<image->ndims; i++) {
-        dim[i] = image->dimensions[i];
+        upd.dimensions[i] = image->dimensions[i];
+        dim[i]            = image->dimensions[i];
+        upd.point[i]      = coord[i];
+        upd.stride[i] = 1;
     }
+
     dim[i-1] = dim[i-1]/2 + 1;
 
-    // Recalculate FT on GPU
-    cl_double d = delta;
-    clSetKernelArg (ctx->sparse_ft2d, 0, sizeof(cl_mem),    &image->real);
-    clSetKernelArg (ctx->sparse_ft2d, 1, sizeof(cl_mem),    &image->imag);
-    clSetKernelArg (ctx->sparse_ft2d, 2, sizeof(cl_uint),   &x);
-    clSetKernelArg (ctx->sparse_ft2d, 3, sizeof(cl_uint),   &y);
-    clSetKernelArg (ctx->sparse_ft2d, 4, sizeof(cl_uint),   &w);
-    clSetKernelArg (ctx->sparse_ft2d, 5, sizeof(cl_uint),   &h);
-    clSetKernelArg (ctx->sparse_ft2d, 6, sizeof(cl_double), &d);
+    for (i=0; i<image->ndims; i++) {
+        upd.stride[i] = 1;
+        for (j=i+1; j<image->ndims; j++) {
+            upd.stride[i] *= dim[j];
+        }
+    }
 
-    clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft2d,
-                            2, NULL, dim, NULL, 0, NULL, NULL);
+    struct an_gpu_context *ctx = image->ctx;
+    cl_double d = delta;
+    clSetKernelArg (ctx->sparse_ft, 0, sizeof(cl_mem),                &image->real);
+    clSetKernelArg (ctx->sparse_ft, 1, sizeof(cl_mem),                &image->imag);
+    clSetKernelArg (ctx->sparse_ft, 2, sizeof(struct an_update_data), &upd);
+    clSetKernelArg (ctx->sparse_ft, 3, sizeof(cl_double),             &d);
+
+    clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft,
+                            image->ndims, NULL, dim, NULL, 0, NULL, NULL);
     clFinish(ctx->queue);
 }
 

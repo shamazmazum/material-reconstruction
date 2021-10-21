@@ -20,7 +20,7 @@
                                          :name "libanneal-ocl"
                                          :defaults c-file)))
       (uiop:run-program
-       (list "cc" "-fPIC" "-shared" "-I/usr/local/include" "-L/usr/local/lib"
+       (list "cc" "-O3" "-fPIC" "-shared" "-I/usr/local/include" "-L/usr/local/lib"
              "-o"
              (nn shared-object)
              (nn c-file)
