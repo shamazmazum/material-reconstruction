@@ -9,8 +9,7 @@ struct update_data {
     unsigned int ndims;
 };
 
-__kernel void sparse_ft (__global double   *real,
-                         __global double   *imag,
+__kernel void sparse_ft (__global double2 *image,
                          struct update_data upd,
                          double c) {
     double angle = 0;
@@ -24,19 +23,17 @@ __kernel void sparse_ft (__global double   *real,
     }
 
     angle = 2 * M_PI * angle;
-    real[idx] += c * cos(angle);
-    imag[idx] -= c * sin(angle);
+    image[idx].x += c * cos(angle);
+    image[idx].y -= c * sin(angle);
 }
 
-__kernel void metric (__global double *real1,
-                      __global double *imag1,
-                      __global double *real2,
-                      __global double *imag2,
-                      __global double *output) {
+__kernel void metric (__global double2 *image1,
+                      __global double2 *image2,
+                      __global double  *output) {
     size_t idx = get_global_id(0);
 
-    double abs_sq1 = pown(real1[idx], 2) + pown(imag1[idx], 2);
-    double abs_sq2 = pown(real2[idx], 2) + pown(imag2[idx], 2);
+    double abs_sq1 = dot(image1[idx], image1[idx]);
+    double abs_sq2 = dot(image2[idx], image2[idx]);
 
     output[idx] = pown(abs_sq1 - abs_sq2, 2);
 }
