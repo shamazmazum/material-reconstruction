@@ -23,24 +23,21 @@ each @c(n)-th step."
 (defun mean (array)
   (declare (optimize (speed 3))
            (type (simple-array double-float) array))
-  (/ (reduce #'+ array)
+  (/ (the double-float (reduce #'+ array))
      (length array)))
 
 (defun std (array)
   (declare (optimize (speed 3))
            (type (simple-array double-float) array))
-  (let* ((mean (mean array))
-         (length (length array))
-         (sum (reduce #'+
-                      (map-into (make-array length
-                                            :element-type 'double-float)
-                                (lambda (x)
-                                  (declare (type double-float x))
-                                  (expt (- x mean) 2))
-                                array))))
-    (declare (type (double-float 0d0) sum)
-             (type (integer 1) length))
-    (sqrt (/ sum (* length (1- length))))))
+  (let ((mean (mean array)))
+    (sqrt
+     (/ (the (double-float 0d0)
+             (reduce (lambda (acc x)
+                       (declare (type double-float acc x))
+                       (+ acc (expt (- x mean) 2)))
+                     array
+                     :initial-value 0d0))
+        (1- (length array))))))
 
 (defun aarts-korst-cooldown (&key (n 10000) (alpha 0.05d0))
   "Create a cooldown schedule described by Aarts and Korst @b(FIXME:

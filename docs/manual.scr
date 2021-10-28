@@ -70,8 +70,8 @@ format. T0 is initial temperature of the system."
     ;; Create GPU context
     (with-gpu-context (ctx)
       ;; Upload images to GPU
-      (with-images ((image1 ctx initial-array)
-                    (image2 ctx original-array))
+      (with-images ((image1 initial-array  :context ctx)
+                    (image2 original-array :context ctx))
         ;; Create proximeter — an object which measures a distance
         ;; between two images according to two-point correlation
         ;; function.
@@ -111,7 +111,10 @@ format. T0 is initial temperature of the system."
 
    @u(Images)
    @cl:with-package[name="material-reconstruction"](
-      @cl:doc(struct image)
+      @cl:doc(class image)
+      @cl:doc(class image-l2)
+      @cl:doc(class image-s2)
+      @cl:doc(class image-all)
       @cl:doc(function create-image)
       @cl:doc(function destroy-image)
       @cl:doc(function image-pixel)

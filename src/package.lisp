@@ -2,7 +2,8 @@
   (:nicknames :recon)
   (:use #:cl
         #:cffi
-        #:array-operations/utilities)
+        #:array-operations/utilities
+        #:select)
   (:export #:recon-error
            #:gpu-context-error
 
@@ -12,6 +13,9 @@
            #:with-gpu-context
 
            #:image
+           #:image-s2
+           #:image-l2
+           #:image-all
            #:create-image
            #:destroy-image
            #:image-pixel

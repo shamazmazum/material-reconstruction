@@ -26,27 +26,18 @@
              (nn c-file)
              "-lm" "-lOpenCL" "-lfftw3")))))
 
-(defsystem :material-reconstruction/l2
-  :license "BSD 2-Clause"
-  :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
-  :version "0.1"
-  :serial t
-  :pathname "src/l2/"
-  :components ((:file "package")
-               (:file "iterators")
-               (:file "l2"))
-  :depends-on (:alexandria :select))
-
 (defsystem :material-reconstruction
   :license "BSD 2-Clause"
   :description "Simulated annealing of materials based on S₂ and L₂ correlation functions"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :version "0.1"
-  :depends-on (:cffi :array-operations :material-reconstruction/l2)
+  :depends-on (:cffi :array-operations :alexandria :select)
   :serial t
   :pathname "src/"
   :components ((c->so "anneal-ocl")
                (:file "package")
+               (:file "iterators")
+               (:file "l2")
                (:file "conditions")
                (:file "ffi")
                (:file "gpu-context")

@@ -1,4 +1,4 @@
-(in-package :l2)
+(in-package :material-reconstruction)
 
 (defun lua-for% (next state control thunk)
   (declare (type function next thunk))
@@ -10,7 +10,7 @@
 
 (defmacro lua-for ((key value form) &body body)
   "Iterate through iterator constructed with FORM"
-  (with-gensyms (function state control)
+  (alexandria:with-gensyms (function state control)
     `(multiple-value-bind (,function ,state ,control)
          ,form
        (lua-for% ,function ,state ,control
@@ -19,7 +19,7 @@
 
 (defun run-next (state control)
   (declare (optimize (speed 3))
-           (type non-negative-fixnum control))
+           (type alexandria:non-negative-fixnum control))
   (destructuring-bind (x . array) state
     (declare (type bit x)
              (type (simple-array bit (*)) array))
@@ -43,13 +43,13 @@
 
 (defun slices-2d-next (state control)
   (declare (optimize (speed 3))
-           (type non-negative-fixnum control))
+           (type alexandria:non-negative-fixnum control))
   (destructuring-bind (axis . array)
       state
     (declare (type bit axis))
     (let* ((another-axis (- 1 axis))
            (length (array-dimension array another-axis)))
-      (declare (type non-negative-fixnum length))
+      (declare (type alexandria:non-negative-fixnum length))
       (if (< control length)
           (values (1+ control)
                   (apply #'select array
@@ -60,3 +60,13 @@
 (defun slices-2d (array axis)
   (declare (type bit axis))
   (values #'slices-2d-next (cons axis array) 0))
+
+(defun enumerate-next (state control)
+  (declare (optimize (speed 3))
+           (type fixnum control))
+  (let* ((control (1+ control))
+         (elt (nth control state)))
+    (if elt (values control elt))))
+
+(defun enumerate (list)
+  (values #'enumerate-next list -1))
