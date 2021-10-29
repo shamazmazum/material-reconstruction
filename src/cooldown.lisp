@@ -39,7 +39,7 @@ each @c(n)-th step."
                      :initial-value 0d0))
         (1- (length array))))))
 
-(defun aarts-korst-cooldown (&key (n 10000) (alpha 0.05d0))
+(defun aarts-korst-cooldown (&key (n 10000) (alpha 0.5d0))
   "Create a cooldown schedule described by Aarts and Korst @b(FIXME:
 where?). Annealing temperature decreases once each @c(n) steps
 according to a parameter @c(alhpa). The larger that parameter is the
