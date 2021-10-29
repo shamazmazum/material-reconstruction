@@ -1,13 +1,71 @@
 (in-package :material-reconstruction)
 
-(defun s2-cost (proximeter &optional (start 1d0))
-  "Create a cost function based on two-point correlation function. An
-early created @c(proximeter) object is required to actually measure
-the cost."
+(defclass cost-state ()
+  ((proximeter    :initarg       :proximeter
+                  :reader        cost-proximeter
+                  :type          proximeter)
+   (initial-cost  :type          list
+                  :accessor      cost-initial))
+  (:documentation "An instance of this object is required for
+calculation of a cost function. @c(:image-x) and @c(:image-y) are two
+images which must be specified to calculate the weights for
+correlation functions. @c(proximeter) object must be specified when
+@c(image-x) and @c(image-y) are of type @c(image-s2)."))
+
+(defgeneric image-distance (cost image-x image-y)
+  (:documentation "Unscaled difference between images accroding to
+some metric")
+  (:method-combination list))
+
+(defmethod image-distance list ((cost cost-state)
+                                (image-x image-s2)
+                                (image-y image-s2))
+  (cons :s2 (proximity (cost-proximeter cost))))
+
+(declaim (ftype (function ((simple-array alexandria:non-negative-fixnum (*))
+                           (simple-array alexandria:non-negative-fixnum (*)))
+                          (values double-float &optional))
+                euclidean-distance))
+(defun euclidean-distance (vector1 vector2)
   (declare (optimize (speed 3))
-           (type proximeter proximeter)
-           (type double-float start))
-  (let ((initial-value (proximity proximeter)))
-    (lambda (image1 image2)
-      (declare (ignore image1 image2))
-      (* start (/ (proximity proximeter) initial-value)))))
+           (type (simple-array alexandria:non-negative-fixnum (*)) vector1 vector2))
+  (reduce
+   #'+
+   (map-into (make-array (length vector1) :element-type 'double-float)
+             (lambda (x y)
+               (declare (type fixnum x y))
+               (expt (float (- x y) 0d0) 2))
+             vector1 vector2)))
+
+(defmethod image-distance list ((cost cost-state)
+                                (image-x image-l2)
+                                (image-y image-l2))
+  (cons :l2
+        (+
+         (reduce #'+ (mapcar #'euclidean-distance
+                             (image-l2-void image-x)
+                             (image-l2-void image-y)))
+         (reduce #'+ (mapcar #'euclidean-distance
+                             (image-l2-solid image-x)
+                             (image-l2-solid image-y))))))
+
+(defmethod initialize-instance :after ((cost cost-state)
+                                       &rest initargs
+                                       &key image-x image-y &allow-other-keys)
+  (declare (ignore initargs))
+  (setf (cost-initial cost)
+        (image-distance cost image-x image-y)))
+
+(defun cost (cost image-x image-y)
+  "Calculate cost function for images @c(image-x) and
+@c(image-y). @c(cost) is an object of type @c(cost-state) created for
+these two images."
+  (declare (type cost-state cost)
+           (type image image-x image-y))
+  (let ((differences (image-distance cost image-x image-y))
+        (initial-values (cost-initial cost)))
+    (reduce
+     (lambda (acc diff)
+       (+ acc (/ (cdr diff)
+                 (cdr (assoc (car diff) initial-values)))))
+     differences :initial-value 0d0)))

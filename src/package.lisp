@@ -43,6 +43,7 @@
            #:exponential-cooldown
            #:aarts-korst-cooldown
 
-           #:s2-cost
+           #:cost
+           #:cost-state
            #:annealing-step
            #:run-annealing))

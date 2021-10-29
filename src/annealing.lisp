@@ -1,15 +1,18 @@
 (in-package :material-reconstruction)
 
-(defun annealing-step (system target temp &key cost modifier cooldown)
+(defun annealing-step (system target temp &key cost-state modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
-@c(system) minimising the function @c(cost) which is called with two
-arguments: @c(system) and @c(target).
+@c(system) minimising difference in correlation functions calculated
+using a @c(cost-state) object which is an instance of the
+@c(cost-state) class. Correlation functions used in the annealing
+depend on class of @c(system) and @c(target) arguments which can be
+either @c(image-l2), @c(image-s2) or @c(image-all).
 
 Modifications to the system are controlled by @c(modifier)
-argument. Currently implemented modifiers are @c(flipper) and
-@c(batch-modifier). A modifier needs a sampler to take samples from
-the system. There is only one currently implemented sampler which is
-@c(interface-sampler).
+argument. Currently implemented modifiers are @c(flipper), @c(swapper)
+and @c(batch-modifier). A modifier needs a sampler to take samples
+from the system. Two implemented samplers are @c(interface-sampler)
+and @c(uniform-sampler).
 
 A modification is either accepted or rejected by the procedure. A
 parameter @c(temp) is temperature of the system at the current
@@ -26,12 +29,13 @@ indicates if a modification was discarded."
   (declare (optimize (speed 3))
            (type image system target)
            (type double-float temp)
-           (type function cost cooldown)
+           (type function cooldown)
+           (type cost-state cost-state)
            (type modifier modifier))
 
-  (let ((cost1 (funcall cost system target))
+  (let ((cost1 (cost cost-state system target))
         (state (modify modifier system))
-        (cost2 (funcall cost system target))
+        (cost2 (cost cost-state system target))
         accepted rejected)
     (declare (type double-float cost1 cost2))
     (when (> cost2 cost1)
@@ -48,7 +52,7 @@ indicates if a modification was discarded."
      (if rejected cost1 cost2)
      accepted rejected)))
 
-(defun run-annealing (system target t0 n &key cost modifier cooldown)
+(defun run-annealing (system target t0 n &key cost-state modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)
 steps. See also @c(annealing-step)."
   (let ((temp t0)
@@ -58,15 +62,15 @@ steps. See also @c(annealing-step)."
     (loop for steps below n do
       (multiple-value-bind (new-temp step-cost step-acc step-rej)
           (annealing-step system target temp
-                          :cost     cost
-                          :modifier modifier
-                          :cooldown cooldown)
+                          :cost-state cost-state
+                          :modifier   modifier
+                          :cooldown   cooldown)
         (push step-cost cost-list)
         (setq temp new-temp)
         (incf rejected (if step-rej 1 0))
-        (incf accepted (if step-acc 1 0)))
-      (when (zerop (rem steps 1000))
-        (format t "~d steps, ~d accepted, ~d rejected, ~f temp, ~f cost~%"
-                steps accepted rejected temp
-                (funcall cost system target))))
+        (incf accepted (if step-acc 1 0))
+
+        (when (zerop (rem steps 1000))
+          (format t "~d steps, ~d accepted, ~d rejected, ~f temp, ~f cost~%"
+                  steps accepted rejected temp step-cost))))
     (reverse cost-list)))

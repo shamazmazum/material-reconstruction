@@ -1,16 +1,23 @@
 @begin[ref=index](section)
    @title(Overview)
    @c(material-reconstruction) is a tool which helps to restore 2D and 3D images
-   according to their two-point correlation function using the algorithm called
-   simulated annealing.
+   according to their two-point and lineal-path correlation function using the
+   algorithm called simulated annealing.
 
    According to Salvatore Torquato's book "Random Heterogeneous Materials",
-   two-point correlation function is defined as follows.
+   two-point correlation function is defined as follows:
    @begin(quote)
       The two-point or autocorrelation function S₂(r) = S₂¹(r) for statistically
    homogeneous media can be obtained by randomly tossing line segments of length
    r with a specified orientation [into the image] and counting the fraction of
    times the end points fall in phase 1.
+   @end(quote)
+   A definition of lineal-path function is similar:
+   @begin(quote)
+      The lineal-path function L₂(r) = L₂¹(r) for statistically homogeneous
+   media can be obtained by randomly tossing line segments of length r with a
+   specified orientation [into the image] and counting the fraction of times a
+   whole segment falls in phase 1.
    @end(quote)
 
    The term "phase" means just a value of a pixel in an image. This library
@@ -70,20 +77,23 @@ format. T0 is initial temperature of the system."
     ;; Create GPU context
     (with-gpu-context (ctx)
       ;; Upload images to GPU
-      (with-images ((image1 initial-array  :context ctx)
-                    (image2 original-array :context ctx))
+      (with-images ((image1 initial-array  image-s2 :context ctx)
+                    (image2 original-array image-s2 :context ctx))
         ;; Create proximeter — an object which measures a distance
         ;; between two images according to two-point correlation
         ;; function.
         (with-proximeter (proximeter image1 image2)
-          (let ((cost     (s2-cost proximeter)) ; Wrap proximeter in a cost function
-                (cooldown (aarts-korst-cooldown :n 10000 :alpha 0.01d0)) ; Create cooldown schedule
-                (modifier (make-modifier))) ; Create a modifier
+          (let ((cost-state (make-instance 'cost-state
+                                           :proximeter proximeter
+                                           :image-x image1
+                                           :image-y image2)) ; Used in calculation of cost function
+                (cooldown   (aarts-korst-cooldown :n 10000 :alpha 0.01d0)) ; Create cooldown schedule
+                (modifier   (make-modifier))) ; Create a modifier
             ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
             (run-annealing image1 image2 t0 steps
-                           :cost     cost
-                           :cooldown cooldown
-                           :modifier modifier)))
+                           :cost-state cost-state
+                           :cooldown   cooldown
+                           :modifier   modifier)))
         ;; Return the resulting bit array
         (image-array image1)))))
    @end(code)
@@ -116,7 +126,7 @@ format. T0 is initial temperature of the system."
       @cl:doc(class image-s2)
       @cl:doc(class image-all)
       @cl:doc(function create-image)
-      @cl:doc(function destroy-image)
+      @cl:doc(generic destroy-image)
       @cl:doc(function image-pixel)
       @cl:doc(macro with-image)
       @cl:doc(macro with-images)
@@ -136,6 +146,7 @@ format. T0 is initial temperature of the system."
       @cl:doc(class modifier)
       @cl:doc(class sampler)
       @cl:doc(class flipper)
+      @cl:doc(class swapper)
       @cl:doc(class batch-modifier)
       @cl:doc(class interface-sampler)
       @cl:doc(class uniform-sampler)
@@ -152,9 +163,10 @@ format. T0 is initial temperature of the system."
       @cl:doc(function initialize-random)
    )
 
-   @u(Cost functions)
+   @u(Cost function and cost state)
    @cl:with-package[name="material-reconstruction"](
-      @cl:doc(function s2-cost)
+      @cl:doc(class cost-state)
+      @cl:doc(function cost)
    )
 
    @u(Simulated annealing)

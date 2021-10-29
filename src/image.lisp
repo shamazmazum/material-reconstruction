@@ -1,14 +1,17 @@
 (in-package :material-reconstruction)
 
 (defclass image ()
-  ((array :reader   image-array
-          :initarg  :array
-          :type     (simple-array bit)))
-  (:documentation "Basic class for images"))
+  ((array :reader        image-array
+          :initarg       :array
+          :type          (simple-array bit)
+          :documentation "Underlying bit-array"))
+  (:documentation "Basic class for two-phase images"))
 
 (defclass image-s2 (image)
   ((sap :accessor image-sap))
-  (:documentation "Class for images with associated two-point function"))
+  (:documentation "Class for images with associated two-point
+function. @c(context) keyword argument must hold OpenCL context. The
+context must remain alive while a created image lives."))
 
 (defclass image-l2 (image)
   ((l2-void  :accessor image-l2-void
@@ -26,15 +29,15 @@
 @c(coord) in row-major order to @c(val)."))
 
 (defgeneric destroy-image (image)
-  (:documentation "Destroy an image")
+  (:documentation "Destroy an image. Must be called for images which
+store data on GPU (like, @c(image-s2) images).")
   (:method ((image image)) (values)))
 
-(defun create-image (array &rest arguments &key (class 'image-s2) &allow-other-keys)
+(defun create-image (array class &rest arguments)
   "Create an image from a bit-array @c(array). Keyword argument
-@c(context) is a GPU context for images which track two-point
-function."
-  (apply #'make-instance class :array array
-         (remove :class (remove class arguments))))
+@c(context) is a GPU context and must be specified for images of type
+@c(image-s2). @c(class) denotes a type of created image."
+  (apply #'make-instance class :array array arguments))
 
 (defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
   (setf (image-sap image)
@@ -105,9 +108,10 @@ order."
   (declare (type image image))
   (apply #'aref (image-array image) coord))
 
-(defmacro with-image ((image array &rest arguments) &body body)
-  "Create an image @c(image) and execute @c(body) in its scope."
-  `(let ((,image (create-image ,array ,@arguments)))
+(defmacro with-image ((image array class &rest arguments) &body body)
+  "Create an image @c(image) of type @c(class) and execute @c(body) in
+its scope."
+  `(let ((,image (create-image ,array ',class ,@arguments)))
      (unwind-protect
           (progn ,@body)
        (destroy-image ,image))))

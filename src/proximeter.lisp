@@ -6,7 +6,7 @@ two images according to two-point correlation functon."
   sap image1 image2)
 
 (defun create-proximeter (image1 image2)
-  "Create a 'proximeter' structure which measures distance between
+  "Create a @c(proximeter) structure which measures distance between
 @c(image1) and @c(image2)."
   (declare (type image image1 image2))
   (make-proximeter
