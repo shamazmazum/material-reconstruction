@@ -325,7 +325,6 @@ void an_image_update_fft (struct an_image *image,
 
     clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft,
                             image->ndims, NULL, dim, NULL, 0, NULL, NULL);
-    clFinish(ctx->queue);
 }
 
 // Proximeter (metric calculation)
@@ -388,14 +387,12 @@ cl_double an_proximity (struct an_proximeter *proximeter) {
     clSetKernelArg (ctx->metric, 2, sizeof(cl_mem), &proximeter->tmp);
     clEnqueueNDRangeKernel (ctx->queue, ctx->metric,
                             1, NULL, &dim1, NULL, 0, NULL, NULL);
-    clFinish(ctx->queue);
 
     clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &proximeter->tmp);
     clSetKernelArg (ctx->reduce, 1, sizeof(cl_double) * gs, NULL);
     clSetKernelArg (ctx->reduce, 2, sizeof(cl_ulong), &dim1);
     clEnqueueNDRangeKernel (ctx->queue, ctx->reduce, 1, NULL,
                             &gssq, &gs, 0, NULL, NULL);
-    clFinish(ctx->queue);
 
 #if 0
     clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &proximeter->tmp);
@@ -404,7 +401,6 @@ cl_double an_proximity (struct an_proximeter *proximeter) {
     clSetKernelArg (ctx->reduce, 2, sizeof(cl_ulong), &dim2);
     clEnqueueNDRangeKernel (ctx->queue, ctx->reduce, 1, NULL,
                             &gs, &gs, 0, NULL, NULL);
-    clFinish(ctx->queue);
 
     clEnqueueReadBuffer (ctx->queue, proximeter->tmp,
                          CL_TRUE, 0, sizeof (cl_double), &metric, 0,
