@@ -30,35 +30,8 @@
           (values stop (- stop start)))))))
           
 (defun count-runs (array x)
+  "Return iterator which counts runs of X in bit array ARRAY."
   (values #'run-next (cons x array) 0))
-
-(defun icount-next (state control)
-  (declare (optimize (speed 3))
-           (type fixnum state control))
-  (if (< control state)
-      (values (1+ control) control)))
-
-(defun icount (stop &key (start 0))
-  (values #'icount-next stop start))
-
-(defun slice (array coord)
-  (declare (type (simple-array bit) array)
-           (type list coord)
-           (optimize (speed 3)))
-  (let ((first-item  (apply #'array-row-major-index
-                      array (substitute 0 t coord :count 1)))
-        (second-item (apply #'array-row-major-index
-                      array (substitute 1 t coord :count 1)))
-        (axis (position t coord)))
-    (when (not axis)
-      (error "Axis is not specified"))
-    (let ((slice (make-array (array-dimension array axis)
-                             :element-type 'bit)))
-      (loop for i from first-item by (- second-item first-item)
-            for j below (length slice) do
-              (setf (aref slice j)
-                    (row-major-aref array i)))
-      slice)))
 
 (defun slices-2d-next (state control)
   (declare (optimize (speed 3))
@@ -88,4 +61,6 @@
     (if elt (values control elt))))
 
 (defun enumerate (list)
+  "Return interator which enumerates all elements of LIST, starting
+with 0."
   (values #'enumerate-next list -1))
