@@ -43,7 +43,7 @@
           collect
           (let ((l2 (make-array (reduce #'max dimensions)
                                 :element-type 'alexandria:non-negative-fixnum)))
-            (lua-for (_ slice (slices-2d array axis))
+            (lua-for (_ slice (slices array axis))
               (declare (ignore _))
               (map-into
                l2 #'+ l2 (l2-slice slice val)))

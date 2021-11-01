@@ -75,13 +75,28 @@
          test-functions)))
 
 (in-suite l2-update)
-(test l2-update
+(test l2-update-2d
   (let ((image (create-image
-                (make-array '(100 100) :element-type 'bit :initial-element 0)
+                (make-array '(200 100) :element-type 'bit :initial-element 0)
                 'image-l2)))
     (loop repeat 50000 do
-      (let ((coord (list (random 100)
+      (let ((coord (list (random 200)
                          (random 100))))
+        (setf (image-pixel image coord)
+              (- 1 (image-pixel image coord)))))
+    (is (equalp (material-reconstruction::image-l2-void image)
+                (material-reconstruction::l2 (image-array image) 0)))
+    (is (equalp (material-reconstruction::image-l2-solid image)
+                (material-reconstruction::l2 (image-array image) 1)))))
+
+(test l2-update-3d
+  (let ((image (create-image
+                (make-array '(100 50 25) :element-type 'bit :initial-element 0)
+                'image-l2)))
+    (loop repeat 200000 do
+      (let ((coord (list (random 100)
+                         (random 50)
+                         (random 25))))
         (setf (image-pixel image coord)
               (- 1 (image-pixel image coord)))))
     (is (equalp (material-reconstruction::image-l2-void image)
