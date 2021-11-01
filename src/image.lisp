@@ -74,7 +74,7 @@ store data on GPU (like, @c(image-s2) images).")
         (declare (type (simple-array alexandria:non-negative-fixnum (*)) l2-dir))
         (let ((selection (copy-list coord)))
           (setf (nth axis selection) t)
-          (let ((slice (apply #'select array selection)))
+          (let ((slice (slice array selection)))
             (declare (type (simple-array bit (*)) slice))
             (map-into l2-dir function
                       l2-dir (l2-slice slice phase)))))))

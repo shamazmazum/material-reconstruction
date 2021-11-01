@@ -2,8 +2,7 @@
   (:nicknames :recon)
   (:use #:cl
         #:cffi
-        #:array-operations/utilities
-        #:select)
+        #:array-operations/utilities)
   (:export #:recon-error
            #:gpu-context-error
 

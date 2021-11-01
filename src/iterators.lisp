@@ -41,6 +41,25 @@
 (defun icount (stop &key (start 0))
   (values #'icount-next stop start))
 
+(defun slice (array coord)
+  (declare (type (simple-array bit) array)
+           (type list coord)
+           (optimize (speed 3)))
+  (let ((first-item  (apply #'array-row-major-index
+                      array (substitute 0 t coord :count 1)))
+        (second-item (apply #'array-row-major-index
+                      array (substitute 1 t coord :count 1)))
+        (axis (position t coord)))
+    (when (not axis)
+      (error "Axis is not specified"))
+    (let ((slice (make-array (array-dimension array axis)
+                             :element-type 'bit)))
+      (loop for i from first-item by (- second-item first-item)
+            for j below (length slice) do
+              (setf (aref slice j)
+                    (row-major-aref array i)))
+      slice)))
+
 (defun slices-2d-next (state control)
   (declare (optimize (speed 3))
            (type alexandria:non-negative-fixnum control))
@@ -52,7 +71,7 @@
       (declare (type alexandria:non-negative-fixnum length))
       (if (< control length)
           (values (1+ control)
-                  (apply #'select array
+                  (slice array
                          (if (zerop axis)
                              (list t control)
                              (list control t))))))))

@@ -31,7 +31,7 @@
   :description "Simulated annealing of materials based on S₂ and L₂ correlation functions"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :version "0.1"
-  :depends-on (:cffi :array-operations :alexandria :select)
+  :depends-on (:cffi :array-operations :alexandria)
   :serial t
   :pathname "src/"
   :components ((c->so "anneal-ocl")
