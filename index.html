@@ -50,13 +50,19 @@
       <div class="content">
         <p>
    <code>material-reconstruction</code> is a tool which helps to restore 2D and 3D images
-   according to their two-point correlation function using the algorithm called
-   simulated annealing.</p><p>   According to Salvatore Torquato's book &quot;Random Heterogeneous Materials&quot;,
-   two-point correlation function is defined as follows.
+   according to their two-point and lineal-path correlation function using the
+   algorithm called simulated annealing.</p><p>   According to Salvatore Torquato's book &quot;Random Heterogeneous Materials&quot;,
+   two-point correlation function is defined as follows:
    </p><blockquote>      The two-point or autocorrelation function S₂(r) = S₂¹(r) for statistically
    homogeneous media can be obtained by randomly tossing line segments of length
    r with a specified orientation [into the image] and counting the fraction of
    times the end points fall in phase 1.
+   </blockquote><p>
+   A definition of lineal-path function is similar:
+   </p><blockquote>      The lineal-path function L₂(r) = L₂¹(r) for statistically homogeneous
+   media can be obtained by randomly tossing line segments of length r with a
+   specified orientation [into the image] and counting the fraction of times a
+   whole segment falls in phase 1.
    </blockquote><p>   The term &quot;phase&quot; means just a value of a pixel in an image. This library
    works with two-phase images which means its pixels can have a value <code>0</code> or
    <code>1</code>.

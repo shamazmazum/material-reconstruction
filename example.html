@@ -88,20 +88,23 @@ format. T0 is initial temperature of the system.&quot;
     ;; Create GPU context
     (with-gpu-context (ctx)
       ;; Upload images to GPU
-      (with-images ((image1 ctx initial-array)
-                    (image2 ctx original-array))
+      (with-images ((image1 initial-array  image-s2 :context ctx)
+                    (image2 original-array image-s2 :context ctx))
         ;; Create proximeter — an object which measures a distance
         ;; between two images according to two-point correlation
         ;; function.
         (with-proximeter (proximeter image1 image2)
-          (let ((cost     (s2-cost proximeter)) ; Wrap proximeter in a cost function
-                (cooldown (aarts-korst-cooldown :n 10000 :alpha 0.01d0)) ; Create cooldown schedule
-                (modifier (make-modifier))) ; Create a modifier
+          (let ((cost-state (make-instance 'cost-state
+                                           :proximeter proximeter
+                                           :image-x image1
+                                           :image-y image2)) ; Used in calculation of cost function
+                (cooldown   (aarts-korst-cooldown :n 10000 :alpha 0.01d0)) ; Create cooldown schedule
+                (modifier   (make-modifier))) ; Create a modifier
             ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
             (run-annealing image1 image2 t0 steps
-                           :cost     cost
-                           :cooldown cooldown
-                           :modifier modifier)))
+                           :cost-state cost-state
+                           :cooldown   cooldown
+                           :modifier   modifier)))
         ;; Return the resulting bit array
         (image-array image1)))))
    </code></pre><p>   The original image: <img src="original.png"/>
