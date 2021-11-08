@@ -1,10 +1,8 @@
 (in-package :material-reconstruction)
 
-(declaim
- (ftype
-  (function ((simple-array bit (*)) bit)
-            (values (simple-array non-negative-fixnum (*)) &optional))
-  l2-slice))
+(-> l2-slice
+    ((simple-array bit (*)) bit)
+    (values (simple-array non-negative-fixnum (*)) &optional))
 (defun l2-slice (array val)
   (declare (optimize (speed 3))
            (type (simple-array bit (*)) array)
@@ -31,10 +29,7 @@
                 (min i first-run last-run (- sum i))))))
     l2))
 
-(declaim (ftype (function ((simple-array bit) bit)
-                          (values list &optional))
-                l2))
-;; Works only for 2D now
+(-> l2 ((simple-array bit) bit) (values list &optional))
 (defun l2 (array val)
   (declare (optimize (speed 3))
            (type (simple-array bit) array))

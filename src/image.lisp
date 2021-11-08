@@ -90,18 +90,15 @@ store data on GPU (like, @c(image-s2) images).")
   (declare (type image image))
   (%destroy-image (image-sap image)))
 
-(declaim
- (ftype
-  (function (image) (values list &optional))
-  image-dimensions))
+(-> image-dimensions (image) (values list &optional))
 (defun image-dimensions (image)
   (declare (type image image))
   (array-dimensions (image-array image)))
 
-(declaim (ftype
-          (function (image (cons (unsigned-byte 32)))
-                    (values bit &optional))
-          image-pixel))
+(defun coordinates-p (list)
+  (every (lambda (x) (typep x '(unsigned-byte 32))) list))
+
+(-> image-pixel (image (satisfies coordinates-p)) (values bit &optional))
 (defun image-pixel (image coord)
   "Get image pixel at coordinates specified by @c(coord) in row-major
 order."

@@ -19,10 +19,7 @@ two images according to two-point correlation functon."
   "Destroy proximeter."
   (%destroy-proximeter (proximeter-sap proximeter)))
 
-(declaim (ftype
-          (function (proximeter)
-                    (values double-float &optional))
-          proximity))
+(-> proximity (proximeter) (values double-float &optional))
 (defun proximity (proximeter)
   "Return a distance (a double-precision floating point value) between
 tracked images according to two-point correlation function."

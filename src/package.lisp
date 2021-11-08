@@ -7,6 +7,7 @@
                 #:with-gensyms
                 #:non-negative-fixnum
                 #:positive-fixnum)
+  (:import-from :serapeum #:->)
   (:export #:recon-error
            #:gpu-context-error
 
