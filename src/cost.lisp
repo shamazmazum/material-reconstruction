@@ -22,13 +22,13 @@ some metric")
                                 (image-y image-s2))
   (cons :s2 (proximity (cost-proximeter cost))))
 
-(declaim (ftype (function ((simple-array alexandria:non-negative-fixnum (*))
-                           (simple-array alexandria:non-negative-fixnum (*)))
+(declaim (ftype (function ((simple-array non-negative-fixnum (*))
+                           (simple-array non-negative-fixnum (*)))
                           (values double-float &optional))
                 euclidean-distance))
 (defun euclidean-distance (vector1 vector2)
   (declare (optimize (speed 3))
-           (type (simple-array alexandria:non-negative-fixnum (*)) vector1 vector2))
+           (type (simple-array non-negative-fixnum (*)) vector1 vector2))
   (reduce
    #'+
    (map-into (make-array (length vector1) :element-type 'double-float)

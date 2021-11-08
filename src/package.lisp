@@ -3,6 +3,10 @@
   (:use #:cl
         #:cffi
         #:array-operations/utilities)
+  (:import-from :alexandria
+                #:with-gensyms
+                #:non-negative-fixnum
+                #:positive-fixnum)
   (:export #:recon-error
            #:gpu-context-error
 

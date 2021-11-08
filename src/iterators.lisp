@@ -10,7 +10,7 @@
 
 (defmacro lua-for ((key value form) &body body)
   "Iterate through iterator constructed with FORM"
-  (alexandria:with-gensyms (function state control)
+  (with-gensyms (function state control)
     `(multiple-value-bind (,function ,state ,control)
          ,form
        (lua-for% ,function ,state ,control
@@ -19,7 +19,7 @@
 
 (defun run-next (state control)
   (declare (optimize (speed 3))
-           (type alexandria:non-negative-fixnum control))
+           (type non-negative-fixnum control))
   (destructuring-bind (x . array) state
     (declare (type bit x)
              (type (simple-array bit (*)) array))
