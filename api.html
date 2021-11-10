@@ -124,17 +124,20 @@ calculation of a cost function. <code>:image-x</code> and <code>:image-y</code> 
 images which must be specified to calculate the weights for
 correlation functions. <code>proximeter</code> object must be specified when
 <code>image-x</code> and <code>image-y</code> are of type <code>image-s2</code>.</div><ul class="codex-slot-list"><li class="codex-slot codex-class-slot"><code class="codex-name">proximeter</code><div class="codex-docstring"></div><div class="codex-class-struct-slot-option-node"><table class="codex-class-struct-slot-option-table"><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-header-cell">Option</td><td class="codex-class-struct-slot-option-header-cell">Value</td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Allocation:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell">instance</td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Type:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell"><code class="codex-class-struct-slot-symbol-list">material-reconstruction:proximeter</code></td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Initarg:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell"><code class="codex-class-struct-slot-symbol-list">:proximeter</code></td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Readers:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell"><code class="codex-class-struct-slot-symbol-list">(cost-proximeter)</code></td></tr></table></div></li><li class="codex-slot codex-class-slot"><code class="codex-name">initial-cost</code><div class="codex-docstring"></div><div class="codex-class-struct-slot-option-node"><table class="codex-class-struct-slot-option-table"><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-header-cell">Option</td><td class="codex-class-struct-slot-option-header-cell">Value</td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Allocation:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell">instance</td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Type:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell"><code class="codex-class-struct-slot-symbol-list">list</code></td></tr><tr class="codex-class-struct-slot-option-row"><td class="codex-class-struct-slot-option-label-cell">Accessors:</td><td class="codex-class-struct-slot-option-value-cell codex-class-struct-slot-option-symbol-list-cell"><code class="codex-class-struct-slot-symbol-list">(cost-initial)</code></td></tr></table></div></li></ul></div>
-      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">cost</code><code class="codex-lambda-list">(cost image-x image-y)</code><div class="codex-docstring">Calculate cost function for images <code>image-x</code> and
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">cost</code><code class="codex-lambda-list">(cost image-x image-y)</code><div class="codex-docstring"><p>Calculate cost function for images <code>image-x</code> and
 <code>image-y</code>. <code>cost</code> is an object of type <code>cost-state</code> created for
-these two images.</div></div>
+these two images. Correlation functions used in the calculation depend
+on class of <code>image-x</code> and <code>image-y</code> arguments which can be either
+<code>image-l2</code>, <code>image-s2</code> or <code>image-all</code>.</p><p>Function like (alexadria:curry #'cost cost-state) can be used as a
+cost function in <code>annealing-step</code>.</p></div></div>
    </p><p>   <u>Simulated annealing</u>
    
-      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">annealing-step</code><code class="codex-lambda-list">(system target temp &amp;key cost-state modifier cooldown)</code><div class="codex-docstring"><p>Perform an annealing step. An annealing procedure modifies
-<code>system</code> minimising difference in correlation functions calculated
-using a <code>cost-state</code> object which is an instance of the
-<code>cost-state</code> class. Correlation functions used in the annealing
-depend on class of <code>system</code> and <code>target</code> arguments which can be
-either <code>image-l2</code>, <code>image-s2</code> or <code>image-all</code>.</p><p>Modifications to the system are controlled by <code>modifier</code>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">annealing-step</code><code class="codex-lambda-list">(system target temp &amp;key cost modifier cooldown)</code><div class="codex-docstring"><p>Perform an annealing step. An annealing procedure modifies
+<code>system</code> minimising cost function <code>cost</code>. <code>cost</code> is a function
+which takes two <code>image</code> objects and returns a real number. It
+usually takes into account one or two correlation functions. For more
+information, see documentation abount function with the same name
+<code>cost</code>.</p><p>Modifications to the system are controlled by <code>modifier</code>
 argument. Currently implemented modifiers are <code>flipper</code>, <code>swapper</code>
 and <code>batch-modifier</code>. A modifier needs a sampler to take samples
 from the system. Two implemented samplers are <code>interface-sampler</code>
@@ -148,7 +151,7 @@ temperature, a new value of the cost function, a boolean value which
 indicates that a modification to the system has resulted in an
 increase of the cost function and another boolean value which
 indicates if a modification was discarded.</p></div></div>
-      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">run-annealing</code><code class="codex-lambda-list">(system target t0 n &amp;key cost-state modifier cooldown)</code><div class="codex-docstring">Run simulated annealing with starting temperature <code>t0</code> for <code>n</code>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">run-annealing</code><code class="codex-lambda-list">(system target t0 n &amp;key cost modifier cooldown)</code><div class="codex-docstring">Run simulated annealing with starting temperature <code>t0</code> for <code>n</code>
 steps. See also <code>annealing-step</code>.</div></div>
    </p>
       </div>

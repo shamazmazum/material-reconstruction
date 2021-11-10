@@ -55,6 +55,7 @@
    reconstruction. The value of <code>steps</code> argument was <code>3000000</code>.
    </p><pre><code class="lisp">(defpackage annealing-test
   (:use #:cl #:recon)
+  (:import-from #:alexandria #:curry)
   (:export #:test-annealing))
 (in-package :annealing-test)
 
@@ -102,9 +103,9 @@ format. T0 is initial temperature of the system.&quot;
                 (modifier   (make-modifier))) ; Create a modifier
             ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
             (run-annealing image1 image2 t0 steps
-                           :cost-state cost-state
-                           :cooldown   cooldown
-                           :modifier   modifier)))
+                           :cost     (alexandria:curry #'cost cost-state)
+                           :cooldown cooldown
+                           :modifier modifier)))
         ;; Return the resulting bit array
         (image-array image1)))))
    </code></pre><p>   The original image: <img src="original.png"/>
