@@ -44,6 +44,7 @@
    @begin[lang=lisp](code)
 (defpackage annealing-test
   (:use #:cl #:recon)
+  (:import-from #:alexandria #:curry)
   (:export #:test-annealing))
 (in-package :annealing-test)
 
@@ -91,9 +92,9 @@ format. T0 is initial temperature of the system."
                 (modifier   (make-modifier))) ; Create a modifier
             ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
             (run-annealing image1 image2 t0 steps
-                           :cost-state cost-state
-                           :cooldown   cooldown
-                           :modifier   modifier)))
+                           :cost     (alexandria:curry #'cost cost-state)
+                           :cooldown cooldown
+                           :modifier modifier)))
         ;; Return the resulting bit array
         (image-array image1)))))
    @end(code)

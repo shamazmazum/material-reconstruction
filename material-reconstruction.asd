@@ -64,5 +64,6 @@
   :components ((:file "package")
                (:file "tests" :depends-on ("package")))
   :depends-on (:material-reconstruction
+               :alexandria
                :fiveam
                :cl-value-noise))

@@ -44,9 +44,9 @@
                 (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
                 (modifier   (make-modifier)))
             (run-annealing recon target t0 steps
-                           :cost-state cost-state
-                           :cooldown   cooldown
-                           :modifier   modifier)
+                           :cost     (alexandria:curry #'cost cost-state)
+                           :cooldown cooldown
+                           :modifier modifier)
             (cost cost-state recon target)))))))
 
 (defun test-annealing-l2 (steps &key (side 300) (t0 1d-5))
@@ -60,9 +60,9 @@
             (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
             (modifier   (make-modifier)))
         (run-annealing recon target t0 steps
-                       :cost-state cost-state
-                       :cooldown   cooldown
-                       :modifier   modifier)
+                       :cost     (alexandria:curry #'cost cost-state)
+                       :cooldown cooldown
+                       :modifier modifier)
         (cost cost-state recon target)))))
 
 (in-suite annealing)

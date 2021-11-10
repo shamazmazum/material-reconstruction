@@ -59,7 +59,12 @@ some metric")
 (defun cost (cost image-x image-y)
   "Calculate cost function for images @c(image-x) and
 @c(image-y). @c(cost) is an object of type @c(cost-state) created for
-these two images."
+these two images. Correlation functions used in the calculation depend
+on class of @c(image-x) and @c(image-y) arguments which can be either
+@c(image-l2), @c(image-s2) or @c(image-all).
+
+Function like (alexadria:curry #'cost cost-state) can be used as a
+cost function in @c(annealing-step)."
   (declare (type cost-state cost)
            (type image image-x image-y))
   (let ((differences (image-distance cost image-x image-y))

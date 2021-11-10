@@ -1,12 +1,12 @@
 (in-package :material-reconstruction)
 
-(defun annealing-step (system target temp &key cost-state modifier cooldown)
+(defun annealing-step (system target temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
-@c(system) minimising difference in correlation functions calculated
-using a @c(cost-state) object which is an instance of the
-@c(cost-state) class. Correlation functions used in the annealing
-depend on class of @c(system) and @c(target) arguments which can be
-either @c(image-l2), @c(image-s2) or @c(image-all).
+@c(system) minimising cost function @c(cost). @c(cost) is a function
+which takes two @c(image) objects and returns a real number. It
+usually takes into account one or two correlation functions. For more
+information, see documentation abount function with the same name
+@c(cost).
 
 Modifications to the system are controlled by @c(modifier)
 argument. Currently implemented modifiers are @c(flipper), @c(swapper)
@@ -29,13 +29,12 @@ indicates if a modification was discarded."
   (declare (optimize (speed 3))
            (type image system target)
            (type double-float temp)
-           (type function cooldown)
-           (type cost-state cost-state)
+           (type function cooldown cost)
            (type modifier modifier))
 
-  (let ((cost1 (cost cost-state system target))
+  (let ((cost1 (funcall cost system target))
         (state (modify modifier system))
-        (cost2 (cost cost-state system target))
+        (cost2 (funcall cost system target))
         accepted rejected)
     (declare (type double-float cost1 cost2))
     (when (> cost2 cost1)
@@ -52,7 +51,7 @@ indicates if a modification was discarded."
      (if rejected cost1 cost2)
      accepted rejected)))
 
-(defun run-annealing (system target t0 n &key cost-state modifier cooldown)
+(defun run-annealing (system target t0 n &key cost modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)
 steps. See also @c(annealing-step)."
   (let ((temp t0)
@@ -62,9 +61,9 @@ steps. See also @c(annealing-step)."
     (loop for steps below n do
       (multiple-value-bind (new-temp step-cost step-acc step-rej)
           (annealing-step system target temp
-                          :cost-state cost-state
-                          :modifier   modifier
-                          :cooldown   cooldown)
+                          :cost     cost
+                          :modifier modifier
+                          :cooldown cooldown)
         (push step-cost cost-list)
         (setq temp new-temp)
         (incf rejected (if step-rej 1 0))
