@@ -1,12 +1,12 @@
 (in-package :material-reconstruction)
 
 (defclass proximeter (gpu-object)
-  ((image-x :initarg :image-x
-            :type    image-s2
-            :reader  proximeter-image-x)
-   (image-y :initarg :image-y
-            :type    image-s2
-            :reader  proximeter-image-y))
+  ((target :initarg :target
+           :type    (or image-s2 corrfn-s2)
+           :reader  proximeter-target)
+   (recon  :initarg :recon
+           :type    image-s2
+           :reader  proximeter-recon))
   (:documentation "Proximeter is a handle which must be used to get a
 distance between two images according to two-point correlation
 functon."))
@@ -15,8 +15,8 @@ functon."))
   (declare (ignore initargs))
   (setf (object-sap proximeter)
         (%create-proximeter
-         (object-sap (proximeter-image-x proximeter))
-         (object-sap (proximeter-image-y proximeter)))))
+         (object-sap (proximeter-target proximeter))
+         (object-sap (proximeter-recon  proximeter)))))
 
 (defmethod destroy-gpu-object ((proximeter proximeter))
   (%destroy-proximeter (object-sap proximeter)))

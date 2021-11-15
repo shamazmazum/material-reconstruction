@@ -1,6 +1,6 @@
 (in-package :material-reconstruction)
 
-(defun annealing-step (system target temp &key cost modifier cooldown)
+(defun annealing-step (target recon temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
 @c(system) minimising cost function @c(cost). @c(cost) is a function
 which takes two @c(image) objects and returns a real number. It
@@ -27,14 +27,15 @@ indicates that a modification to the system has resulted in an
 increase of the cost function and another boolean value which
 indicates if a modification was discarded."
   (declare (optimize (speed 3))
-           (type image system target)
+           (type image recon)
+           (type (or image corrfn) target)
            (type double-float temp)
            (type function cooldown cost)
            (type modifier modifier))
 
-  (let ((cost1 (funcall cost system target))
-        (state (modify modifier system))
-        (cost2 (funcall cost system target))
+  (let ((cost1 (funcall cost target recon))
+        (state (modify modifier recon))
+        (cost2 (funcall cost target recon))
         accepted rejected)
     (declare (type double-float cost1 cost2))
     (when (> cost2 cost1)
@@ -42,7 +43,7 @@ indicates if a modification was discarded."
       (let ((random (random 1d0))
             (threshold (exp (/ (- (- cost2 cost1)) temp))))
         (when (> random threshold)
-          (rollback modifier system state)
+          (rollback modifier recon state)
           (setq rejected t)))
       (setq accepted (not rejected)))
 
@@ -51,7 +52,7 @@ indicates if a modification was discarded."
      (if rejected cost1 cost2)
      accepted rejected)))
 
-(defun run-annealing (system target t0 n &key cost modifier cooldown)
+(defun run-annealing (target recon t0 n &key cost modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)
 steps. See also @c(annealing-step)."
   (let ((temp t0)
@@ -60,7 +61,7 @@ steps. See also @c(annealing-step)."
         cost-list)
     (loop for steps below n do
       (multiple-value-bind (new-temp step-cost step-acc step-rej)
-          (annealing-step system target temp
+          (annealing-step target recon temp
                           :cost     cost
                           :modifier modifier
                           :cooldown cooldown)

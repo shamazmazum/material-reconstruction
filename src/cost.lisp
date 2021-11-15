@@ -12,14 +12,14 @@ images which must be specified to calculate the weights for
 correlation functions. @c(proximeter) object must be specified when
 @c(image-x) and @c(image-y) are of type @c(image-s2)."))
 
-(defgeneric image-distance (cost image-x image-y)
+(defgeneric image-distance (cost target recon)
   (:documentation "Unscaled difference between images accroding to
 some metric")
   (:method-combination list))
 
 (defmethod image-distance list ((cost cost-state)
-                                (image-x image-s2)
-                                (image-y image-s2))
+                                (target image-s2)
+                                (recon  image-s2))
   (cons :s2 (proximity (cost-proximeter cost))))
 
 (-> euclidean-distance
@@ -38,25 +38,23 @@ some metric")
              vector1 vector2)))
 
 (defmethod image-distance list ((cost cost-state)
-                                (image-x image-l2)
-                                (image-y image-l2))
+                                (target image-l2)
+                                (recon  image-l2))
   (cons :l2
         (+
          (reduce #'+ (mapcar #'euclidean-distance
-                             (image-l2-void image-x)
-                             (image-l2-void image-y)))
+                             (l2-void target)
+                             (l2-void recon)))
          (reduce #'+ (mapcar #'euclidean-distance
-                             (image-l2-solid image-x)
-                             (image-l2-solid image-y))))))
+                             (l2-solid target)
+                             (l2-solid recon))))))
 
 (defmethod initialize-instance :after ((cost cost-state)
-                                       &rest initargs
-                                       &key image-x image-y &allow-other-keys)
-  (declare (ignore initargs))
+                                       &key target recon &allow-other-keys)
   (setf (cost-initial cost)
-        (image-distance cost image-x image-y)))
+        (image-distance cost target recon)))
 
-(defun cost (cost image-x image-y)
+(defun cost (cost target recon)
   "Calculate cost function for images @c(image-x) and
 @c(image-y). @c(cost) is an object of type @c(cost-state) created for
 these two images. Correlation functions used in the calculation depend
@@ -66,8 +64,9 @@ on class of @c(image-x) and @c(image-y) arguments which can be either
 Function like (alexadria:curry #'cost cost-state) can be used as a
 cost function in @c(annealing-step)."
   (declare (type cost-state cost)
-           (type image image-x image-y))
-  (let ((differences (image-distance cost image-x image-y))
+           (type image recon)
+           (type (or image corrfn) target))
+  (let ((differences (image-distance cost target recon))
         (initial-values (cost-initial cost)))
     (reduce
      (lambda (acc diff)

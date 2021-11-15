@@ -11,6 +11,8 @@
   (:export #:recon-error
            #:recon-warning
 
+           #:rfft ; Binding to FFTW3
+
            #:destroy-gpu-object
            #:with-gpu-object
            #:with-gpu-objects
@@ -20,10 +22,13 @@
            #:image
            #:image-s2
            #:image-l2
-           #:image-all
            #:image-pixel
            #:image-dimensions
            #:image-array
+
+           #:corrfn
+           #:corrfn-s2
+           #:corrfn-l2
 
            #:proximeter
            #:proximity

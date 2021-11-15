@@ -46,6 +46,7 @@
                (:file "ffi")
                (:file "gpu-object")
                (:file "gpu-context")
+               (:file "corrfns")
                (:file "image")
                (:file "proximeter")
                (:file "initialization")
