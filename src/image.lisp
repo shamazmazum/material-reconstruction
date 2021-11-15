@@ -13,8 +13,9 @@
 function. @c(context) keyword argument must hold OpenCL context. The
 context must remain alive while a created image lives."))
 
-(defclass image-l2 (image corrfn-l2)
-  ()
+(defclass image-l2 (image)
+  ((l2 :accessor image-l2
+       :type     corrfn-l2))
   (:documentation "Class for images with associated lineal-path function"))
 
 (defgeneric (setf image-pixel) (val image coord)
@@ -31,11 +32,11 @@ context must remain alive while a created image lives."))
 
 (defmethod initialize-instance :after ((image image-l2) &rest initargs)
   (declare (ignore initargs))
-  (let ((array (image-array image)))
-    (setf (l2-solid image)
-          (l2 array 1)
-          (l2-void image)
-          (l2 array 0))))
+  (setf (image-l2 image)
+        (let ((array (image-array image)))
+          (make-instance 'corrfn-l2
+                         :l2-solid (l2 array 1)
+                         :l2-void  (l2 array 0)))))
 
 (defmethod (setf image-pixel) (val (image image) coord)
   (setf (apply #'aref (image-array image) coord) val))
@@ -50,8 +51,8 @@ context must remain alive while a created image lives."))
 (defun update-l2 (image coord function)
   (declare (optimize (speed 3))
            (type function function))
-  (let ((l2 (list (l2-void  image)
-                  (l2-solid image)))
+  (let ((l2 (list (l2-void  (image-l2 image))
+                  (l2-solid (image-l2 image))))
         (array (image-array image)))
     (lua-for (phase l2-phase (enumerate l2))
       (lua-for (axis l2-dir (enumerate l2-phase))

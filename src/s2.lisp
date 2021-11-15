@@ -1,0 +1,11 @@
+(in-package :material-reconstruction)
+
+(defun s2 (array)
+  (declare (type (simple-array bit) array))
+  (let* ((fft (rfft array))
+         (s2  (make-array (array-dimensions fft)
+                          :element-type 'double-float)))
+    (map-into (aops:flatten s2)
+              (lambda (x) (expt (abs x) 2))
+              (aops:flatten fft))
+    s2))

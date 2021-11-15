@@ -28,7 +28,7 @@ increase of the cost function and another boolean value which
 indicates if a modification was discarded."
   (declare (optimize (speed 3))
            (type image recon)
-           (type (or image corrfn) target)
+           (type corrfn target)
            (type double-float temp)
            (type function cooldown cost)
            (type modifier modifier))

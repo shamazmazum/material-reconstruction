@@ -2,7 +2,7 @@
 
 (defclass proximeter (gpu-object)
   ((target :initarg :target
-           :type    (or image-s2 corrfn-s2)
+           :type    corrfn-s2
            :reader  proximeter-target)
    (recon  :initarg :recon
            :type    image-s2

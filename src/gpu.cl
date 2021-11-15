@@ -27,20 +27,9 @@ __kernel void sparse_ft (__global double2 *image,
     image[idx].y -= c * sin(angle);
 }
 
-__kernel void metric (__global double2 *image1,
+__kernel void metric (__global double  *image1,
                       __global double2 *image2,
                       __global double  *output) {
-    size_t idx = get_global_id(0);
-
-    double abs_sq1 = dot(image1[idx], image1[idx]);
-    double abs_sq2 = dot(image2[idx], image2[idx]);
-
-    output[idx] = pown(abs_sq1 - abs_sq2, 2);
-}
-
-__kernel void metric_asym (__global double  *image1,
-                           __global double2 *image2,
-                           __global double  *output) {
     size_t idx = get_global_id(0);
     double abs_sq = dot(image2[idx], image2[idx]);
 

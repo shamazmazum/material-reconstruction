@@ -11,7 +11,12 @@
   (:export #:recon-error
            #:recon-warning
 
-           #:rfft ; Binding to FFTW3
+           ;; Binding to FFTW3
+           #:rfft 
+
+           ;; Correlation functions
+           #:l2
+           #:s2
 
            #:destroy-gpu-object
            #:with-gpu-object

@@ -18,7 +18,7 @@ some metric")
   (:method-combination list))
 
 (defmethod image-distance list ((cost cost-state)
-                                (target image-s2)
+                                (target corrfn-s2)
                                 (recon  image-s2))
   (cons :s2 (proximity (cost-proximeter cost))))
 
@@ -38,16 +38,17 @@ some metric")
              vector1 vector2)))
 
 (defmethod image-distance list ((cost cost-state)
-                                (target image-l2)
+                                (target corrfn-l2)
                                 (recon  image-l2))
-  (cons :l2
-        (+
-         (reduce #'+ (mapcar #'euclidean-distance
-                             (l2-void target)
-                             (l2-void recon)))
-         (reduce #'+ (mapcar #'euclidean-distance
-                             (l2-solid target)
-                             (l2-solid recon))))))
+  (let ((recon-l2 (image-l2 recon)))
+    (cons :l2
+          (+
+           (reduce #'+ (mapcar #'euclidean-distance
+                               (l2-void target)
+                               (l2-void recon-l2)))
+           (reduce #'+ (mapcar #'euclidean-distance
+                               (l2-solid target)
+                               (l2-solid recon-l2)))))))
 
 (defmethod initialize-instance :after ((cost cost-state)
                                        &key target recon &allow-other-keys)
@@ -65,7 +66,7 @@ Function like (alexadria:curry #'cost cost-state) can be used as a
 cost function in @c(annealing-step)."
   (declare (type cost-state cost)
            (type image recon)
-           (type (or image corrfn) target))
+           (type corrfn target))
   (let ((differences (image-distance cost target recon))
         (initial-values (cost-initial cost)))
     (reduce

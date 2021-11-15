@@ -23,7 +23,6 @@ struct an_gpu_context {
 
     cl_kernel sparse_ft;
     cl_kernel metric;
-    cl_kernel metric_asym;
     cl_kernel reduce;
 
     size_t group_size;
@@ -129,9 +128,6 @@ void an_destroy_gpu_context (struct an_gpu_context *ctx) {
     if (ctx->reduce != NULL) {
         clReleaseKernel (ctx->reduce);
     }
-    if (ctx->metric_asym != NULL) {
-        clReleaseKernel (ctx->metric_asym);
-    }
     if (ctx->metric != NULL) {
         clReleaseKernel (ctx->metric);
     }
@@ -223,12 +219,6 @@ struct an_gpu_context* an_create_gpu_context (const char *program) {
     ctx->metric = clCreateKernel(ctx->program, "metric", NULL);
     if (ctx->metric == NULL) {
         fprintf (stderr, "Cannot create metric kernel\n");
-        goto bad;
-    }
-
-    ctx->metric_asym = clCreateKernel(ctx->program, "metric_asym", NULL);
-    if (ctx->metric_asym == NULL) {
-        fprintf (stderr, "Cannot create asymmetric metric kernel\n");
         goto bad;
     }
 
@@ -410,6 +400,7 @@ struct an_proximeter* an_create_proximeter (struct an_image *image1,
         memcmp (image1->dimensions,
                 image2->dimensions,
                 sizeof(cl_uint) * image1->ndims) != 0 ||
+        image1->type  != AN_IMAGE_TYPE_CORRFN         ||
         image2->type  != AN_IMAGE_TYPE_IMAGE) {
         return NULL;
     }
@@ -443,7 +434,6 @@ cl_double an_proximity (struct an_proximeter *proximeter) {
     struct an_image *image2  = proximeter->image2;
     struct an_gpu_context *ctx = proximeter->ctx;
     struct an_array_sizes asizes = an_get_array_sizes (image1->dimensions, image1->ndims);
-    cl_kernel kmetric = (image1->type == AN_IMAGE_TYPE_IMAGE) ? ctx->metric : ctx->metric_asym;
 
     size_t gs   = ctx->group_size;
     size_t gssq = gs * gs;
@@ -451,10 +441,10 @@ cl_double an_proximity (struct an_proximeter *proximeter) {
     cl_ulong dim1 = asizes.complex;
     cl_ulong dim2 = gs;
 
-    clSetKernelArg (kmetric, 0, sizeof(cl_mem), &image1->gpu_image);
-    clSetKernelArg (kmetric, 1, sizeof(cl_mem), &image2->gpu_image);
-    clSetKernelArg (kmetric, 2, sizeof(cl_mem), &proximeter->tmp);
-    clEnqueueNDRangeKernel (ctx->queue, kmetric,
+    clSetKernelArg (ctx->metric, 0, sizeof(cl_mem), &image1->gpu_image);
+    clSetKernelArg (ctx->metric, 1, sizeof(cl_mem), &image2->gpu_image);
+    clSetKernelArg (ctx->metric, 2, sizeof(cl_mem), &proximeter->tmp);
+    clEnqueueNDRangeKernel (ctx->queue, ctx->metric,
                             1, NULL, &dim1, NULL, 0, NULL, NULL);
 
     clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &proximeter->tmp);

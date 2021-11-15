@@ -44,6 +44,7 @@
                (:file "l2")
                (:file "conditions")
                (:file "ffi")
+               (:file "s2")
                (:file "gpu-object")
                (:file "gpu-context")
                (:file "corrfns")
