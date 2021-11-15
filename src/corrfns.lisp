@@ -23,11 +23,11 @@ lives. @c(:corrfn) keyword must hold S₂ correlation function and
   (:documentation "Lineal-path correlation function for solid and void phases"))
 
 (defmethod initialize-instance :after ((corrfn-s2 corrfn-s2)
-                                       &key context corrfn dimensions &allow-other-keys)
+                                       &key context s2 dimensions &allow-other-keys)
   (setf (object-sap corrfn-s2)
         (%create-corrfn
          (object-sap context)
-         corrfn dimensions)))
+         s2 dimensions)))
 
 (defmethod destroy-gpu-object ((corrfn-s2 corrfn-s2))
   ;; These objects are an_image on C side

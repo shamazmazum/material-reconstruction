@@ -42,7 +42,7 @@
     (with-gpu-objects ((ctx gpu-context)
                        (recon  image-s2  :array initial-array
                                          :context ctx)
-                       (target corrfn-s2 :corrfn target-s2
+                       (target corrfn-s2 :s2 target-s2
                                          :dimensions (array-dimensions target-array)
                                          :context ctx)
                        (proximeter proximeter :target target
