@@ -4,7 +4,6 @@
 
 struct an_gpu_context;
 struct an_image;
-struct an_proximeter;
 
 /* Fourier transform */
 int an_rfft (const cl_uchar        *array,
@@ -44,10 +43,7 @@ an_image_update_fft (struct an_image *image,
                      cl_char          delta);
 
 /* Distance measurement */
-struct an_proximeter*
-an_create_proximeter (struct an_image *image1,
-                      struct an_image *image2);
-
-void an_destroy_proximeter (struct an_proximeter *proximeter);
-
-cl_double an_proximity (struct an_proximeter *proximeter);
+int
+an_distance (struct an_image *target,
+             struct an_image *recon,
+             cl_double       *distance);

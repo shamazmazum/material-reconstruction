@@ -86,6 +86,6 @@ context must remain alive while a created image lives."))
 (-> image-pixel (image (satisfies coordinates-p)) (values bit &optional))
 (defun image-pixel (image coord)
   "Get image pixel at coordinates specified by @c(coord) in row-major
-order."
+order. Also can serve as a place for @c(setf)."
   (declare (type image image))
   (apply #'aref (image-array image) coord))

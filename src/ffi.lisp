@@ -33,7 +33,6 @@
 
 (defctype gpu-context :pointer)
 (defctype image       :pointer)
-(defctype proximeter  :pointer)
 
 ;; FFT
 (defcfun ("an_rfft" %rfft) :int
@@ -162,20 +161,14 @@
     (with-pointer-to-vector-data (coord-ptr coord)
       (%%image-update-fft image coord-ptr (length coord) delta))))
 
-;; Proximeter
-(defcfun ("an_create_proximeter" %%create-proximeter) proximeter
-  (image1 image)
-  (image2 image))
+(defcfun ("an_distance" %%distance) :int
+  (target   image)
+  (recon    image)
+  (distance :pointer))
 
-(defun %create-proximeter (image1 image2)
-  (let ((proximeter (%%create-proximeter image1 image2)))
-    (when (null-pointer-p proximeter)
-      (error 'recon-error
-             :format-control "Cannot create proximeter object"))
-    proximeter))
-
-(defcfun ("an_destroy_proximeter" %destroy-proximeter) :void
-  (proximeter proximeter))
-
-(defcfun ("an_proximity" %proximity) :double
-  (proximeter proximeter))
+(defun %distance (target-sap recon-sap)
+  (with-foreign-object (distance-ptr :double)
+    (when (zerop (%%distance target-sap recon-sap distance-ptr))
+      (error 'recon-erron
+             :format-control "Cannot calculate distance between images"))
+    (mem-ref distance-ptr :double)))

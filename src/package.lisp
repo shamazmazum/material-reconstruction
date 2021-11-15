@@ -11,9 +11,6 @@
   (:export #:recon-error
            #:recon-warning
 
-           ;; Binding to FFTW3
-           #:rfft 
-
            ;; Correlation functions
            #:l2
            #:s2
@@ -34,9 +31,6 @@
            #:corrfn
            #:corrfn-s2
            #:corrfn-l2
-
-           #:proximeter
-           #:proximity
 
            #:modifier
            #:sampler

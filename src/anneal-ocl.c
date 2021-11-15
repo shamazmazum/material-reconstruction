@@ -37,16 +37,10 @@ enum an_image_type {
 struct an_image {
     struct an_gpu_context *ctx;
     cl_mem                 gpu_image;
+    cl_mem                 dist_tmp;
     cl_uint                dimensions[AN_MAX_DIMENSIONS];
     unsigned int           ndims;
     enum an_image_type     type;
-};
-
-struct an_proximeter {
-    struct an_gpu_context *ctx;
-    struct an_image       *image1;
-    struct an_image       *image2;
-    cl_mem                 tmp;
 };
 
 struct an_array_sizes {
@@ -237,6 +231,9 @@ bad:
 
 /* Image handling */
 void an_destroy_image (struct an_image *image) {
+    if (image->dist_tmp != NULL) {
+        clReleaseMemObject (image->dist_tmp);
+    }
     if (image->gpu_image != NULL) {
         clReleaseMemObject (image->gpu_image);
     }
@@ -286,7 +283,6 @@ an_create_image (struct an_gpu_context *ctx,
         image_buf[i].y = imag[i];
     }
 
-    clFinish(image->ctx->queue);
     clEnqueueUnmapMemObject (image->ctx->queue, image->gpu_image, image_buf, 0, NULL, NULL);
 
     return image;
@@ -318,6 +314,14 @@ an_create_corrfn (struct an_gpu_context *ctx,
     image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
                                        asizes.complex * sizeof(cl_double), NULL, NULL);
     if (image->gpu_image == NULL) {
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
+                 asizes.complex);
+        goto bad;
+    }
+
+    image->dist_tmp = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
+                                      asizes.complex * sizeof(cl_double), NULL, NULL);
+    if (image->dist_tmp == NULL) {
         fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
                  asizes.complex);
         goto bad;
@@ -384,56 +388,22 @@ void an_image_update_fft (struct an_image *image,
                             image->ndims, NULL, dim, NULL, 0, NULL, NULL);
 }
 
-// Proximeter (metric calculation)
-void an_destroy_proximeter (struct an_proximeter *proximeter) {
-    if (proximeter->tmp != NULL) {
-        clReleaseMemObject (proximeter->tmp);
+int
+an_distance (struct an_image *target,
+             struct an_image *recon,
+             cl_double       *distance) {
+    if (target->ctx   != recon->ctx                   ||
+        target->ndims != recon->ndims                 ||
+        memcmp (target->dimensions,
+                recon->dimensions,
+                sizeof(cl_uint) * target->ndims) != 0 ||
+        target->type  != AN_IMAGE_TYPE_CORRFN         ||
+        recon->type   != AN_IMAGE_TYPE_IMAGE) {
+        return 0;
     }
 
-    free (proximeter);
-}
-
-struct an_proximeter* an_create_proximeter (struct an_image *image1,
-                                            struct an_image *image2) {
-    if (image1->ctx   != image2->ctx                  ||
-        image1->ndims != image2->ndims                ||
-        memcmp (image1->dimensions,
-                image2->dimensions,
-                sizeof(cl_uint) * image1->ndims) != 0 ||
-        image1->type  != AN_IMAGE_TYPE_CORRFN         ||
-        image2->type  != AN_IMAGE_TYPE_IMAGE) {
-        return NULL;
-    }
-
-    struct an_array_sizes asizes = an_get_array_sizes (image1->dimensions, image1->ndims);
-    struct an_proximeter *proximeter = malloc (sizeof (struct an_proximeter));
-    memset (proximeter, 0, sizeof (struct an_proximeter));
-    proximeter->image1 = image1;
-    proximeter->image2 = image2;
-    proximeter->ctx    = image1->ctx;
-
-    proximeter->tmp = clCreateBuffer (proximeter->ctx->context, CL_MEM_READ_WRITE,
-                                      asizes.complex * sizeof(cl_double), NULL, NULL);
-    if (proximeter->tmp == NULL) {
-        fprintf (stderr, "Cannot allocate a temporary buffer (%lu doubles)\n",
-                 asizes.complex);
-        goto bad;
-    }
-
-    return proximeter;
-
-bad:
-    an_destroy_proximeter (proximeter);
-    return NULL;
-}
-
-cl_double an_proximity (struct an_proximeter *proximeter) {
-    cl_double metric;
-
-    struct an_image *image1  = proximeter->image1;
-    struct an_image *image2  = proximeter->image2;
-    struct an_gpu_context *ctx = proximeter->ctx;
-    struct an_array_sizes asizes = an_get_array_sizes (image1->dimensions, image1->ndims);
+    struct an_gpu_context *ctx = target->ctx;
+    struct an_array_sizes asizes = an_get_array_sizes (target->dimensions, target->ndims);
 
     size_t gs   = ctx->group_size;
     size_t gssq = gs * gs;
@@ -441,29 +411,29 @@ cl_double an_proximity (struct an_proximeter *proximeter) {
     cl_ulong dim1 = asizes.complex;
     cl_ulong dim2 = gs;
 
-    clSetKernelArg (ctx->metric, 0, sizeof(cl_mem), &image1->gpu_image);
-    clSetKernelArg (ctx->metric, 1, sizeof(cl_mem), &image2->gpu_image);
-    clSetKernelArg (ctx->metric, 2, sizeof(cl_mem), &proximeter->tmp);
+    clSetKernelArg (ctx->metric, 0, sizeof(cl_mem), &target->gpu_image);
+    clSetKernelArg (ctx->metric, 1, sizeof(cl_mem), &recon->gpu_image);
+    clSetKernelArg (ctx->metric, 2, sizeof(cl_mem), &target->dist_tmp);
     clEnqueueNDRangeKernel (ctx->queue, ctx->metric,
                             1, NULL, &dim1, NULL, 0, NULL, NULL);
 
-    clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &proximeter->tmp);
+    clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &target->dist_tmp);
     clSetKernelArg (ctx->reduce, 1, sizeof(cl_double) * gs, NULL);
     clSetKernelArg (ctx->reduce, 2, sizeof(cl_ulong), &dim1);
     clEnqueueNDRangeKernel (ctx->queue, ctx->reduce, 1, NULL,
                             &gssq, &gs, 0, NULL, NULL);
 
 #if 0
-    clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &proximeter->tmp);
+    clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &target->dist_tmp);
     clSetKernelArg (ctx->reduce, 1, sizeof(cl_double) * gs, NULL);
 #endif
     clSetKernelArg (ctx->reduce, 2, sizeof(cl_ulong), &dim2);
     clEnqueueNDRangeKernel (ctx->queue, ctx->reduce, 1, NULL,
                             &gs, &gs, 0, NULL, NULL);
 
-    clEnqueueReadBuffer (ctx->queue, proximeter->tmp,
-                         CL_TRUE, 0, sizeof (cl_double), &metric, 0,
+    clEnqueueReadBuffer (ctx->queue, target->dist_tmp,
+                         CL_TRUE, 0, sizeof (cl_double), distance, 0,
                          NULL, NULL);
 
-    return metric;
+    return 1;
 }

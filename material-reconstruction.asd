@@ -49,7 +49,6 @@
                (:file "gpu-context")
                (:file "corrfns")
                (:file "image")
-               (:file "proximeter")
                (:file "initialization")
                (:file "samplers")
                (:file "cooldown")

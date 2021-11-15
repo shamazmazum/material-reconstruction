@@ -1,16 +1,12 @@
 (in-package :material-reconstruction)
 
 (defclass cost-state ()
-  ((proximeter    :initarg       :proximeter
-                  :reader        cost-proximeter
-                  :type          proximeter)
-   (initial-cost  :type          list
-                  :accessor      cost-initial))
+  ((initial-cost :type     list
+                 :accessor cost-initial))
   (:documentation "An instance of this object is required for
 calculation of a cost function. @c(:target) is the target set of
 correlation functions and @c(:recon) is an image under
-reconstruction. @c(proximeter) object must be specified when 
-two-point correlation function is used."))
+reconstruction."))
 
 (defgeneric image-distance (cost target recon)
   (:documentation "Unscaled difference between images accroding to
@@ -20,7 +16,8 @@ some metric")
 (defmethod image-distance list ((cost cost-state)
                                 (target corrfn-s2)
                                 (recon  image-s2))
-  (cons :s2 (proximity (cost-proximeter cost))))
+  (cons :s2 (%distance (object-sap target)
+                       (object-sap recon))))
 
 (-> euclidean-distance
     ((simple-array non-negative-fixnum (*))

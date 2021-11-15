@@ -95,22 +95,24 @@ image. T0 is initial temperature of the system."
                              ;; Pass OpenCL context.
                              :context ctx
                              ;; In case of image, you only need to supply an initial approximation.
-                             :array   (initialize-random array))
-                     ;; 
-                     (proximeter proximeter
-                                 :target target
-                                 :recon  recon))
-    (let ((cost-state (make-instance 'cost-state
-                                     :proximeter proximeter
+                             :array   (initialize-random array)))
+    (let (;; cost-state is a state which holds initial values of correlation functions
+          (cost-state (make-instance 'cost-state
                                      :target target
                                      :recon  recon))
+          ;; Create cooldown schedule
           (cooldown  (aarts-korst-cooldown :n 25000 :alpha 1d0))
+          ;; Make modifier object
           (modifier  (make-modifier)))
       (make-instance 'annealing-results
+                     ;; run-annealing runs simulated annealing with initial temperature t0
+                     ;; iterating steps times and returns a list containing values of the cost
+                     ;; function at each step
                      :cost (run-annealing target recon t0 steps
                                           :cost     (alexandria:curry #'cost cost-state)
                                           :cooldown cooldown
                                           :modifier modifier)
+                     ;; Get reconstructed image
                      :array (image-array recon)))))
    @end(code)
 
@@ -126,12 +128,17 @@ image. T0 is initial temperature of the system."
       @cl:doc(condition recon-error)
    )
 
-   @u(GPU context)
+   @u(Correlation functions)
    @cl:with-package[name="material-reconstruction"](
-      @cl:doc(struct gpu-context)
-      @cl:doc(function create-gpu-context)
-      @cl:doc(function destroy-gpu-context)
-      @cl:doc(macro with-gpu-context)
+      @cl:doc(function s2)
+      @cl:doc(function l2)
+   )
+
+   @u(GPU objects)
+   @cl:with-package[name="material-reconstruction"](
+      @cl:doc(generic destroy-gpu-object)
+      @cl:doc(macro with-gpu-object)
+      @cl:doc(macro with-gpu-objects)
    )
 
    @u(Images)
@@ -139,21 +146,15 @@ image. T0 is initial temperature of the system."
       @cl:doc(class image)
       @cl:doc(class image-l2)
       @cl:doc(class image-s2)
-      @cl:doc(class image-all)
-      @cl:doc(function create-image)
-      @cl:doc(generic destroy-image)
       @cl:doc(function image-pixel)
-      @cl:doc(macro with-image)
-      @cl:doc(macro with-images)
+      @cl:doc(function image-dimensions)
    )
 
-   @u(Proximeter)
+   @u(Correlation functions)
    @cl:with-package[name="material-reconstruction"](
-      @cl:doc(struct proximeter)
-      @cl:doc(function create-proximeter)
-      @cl:doc(function destroy-proximeter)
-      @cl:doc(function proximity)
-      @cl:doc(macro with-proximeter)
+      @cl:doc(class corrfn)
+      @cl:doc(class corrfn-l2)
+      @cl:doc(class corrfn-s2)
    )
 
    @u(Modifiers and samplers)

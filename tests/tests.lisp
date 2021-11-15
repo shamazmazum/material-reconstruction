@@ -44,13 +44,10 @@
                                          :context ctx)
                        (target corrfn-s2 :s2 target-s2
                                          :dimensions (array-dimensions target-array)
-                                         :context ctx)
-                       (proximeter proximeter :target target
-                                              :recon recon))
+                                         :context ctx))
       (let ((cost-state (make-instance 'cost-state
-                                       :proximeter proximeter
-                                       :target    target
-                                       :recon    recon))
+                                       :target target
+                                       :recon  recon))
             (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
             (modifier   (make-modifier)))
         (muffle-output
