@@ -311,7 +311,7 @@ an_create_corrfn (struct an_gpu_context *ctx,
     image->ndims = ndims;
     image->type  = AN_IMAGE_TYPE_CORRFN;
 
-    image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
+    image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_ONLY,
                                        asizes.complex * sizeof(cl_double), NULL, NULL);
     if (image->gpu_image == NULL) {
         fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
