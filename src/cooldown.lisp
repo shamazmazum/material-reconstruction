@@ -37,7 +37,8 @@ each @c(n)-th step."
                        (+ acc (expt (- x mean) 2)))
                      array
                      :initial-value 0d0))
-        (1- (length array))))))
+        (the positive-fixnum
+             (1- (length array)))))))
 
 (defun aarts-korst-cooldown (&key (n 10000) (alpha 0.5d0))
   "Create a cooldown schedule described by Aarts and Korst @b(FIXME:
