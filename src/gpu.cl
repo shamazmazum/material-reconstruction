@@ -38,6 +38,15 @@ __kernel void metric (__global double2 *image1,
     output[idx] = pown(abs_sq1 - abs_sq2, 2);
 }
 
+__kernel void metric_asym (__global double  *image1,
+                           __global double2 *image2,
+                           __global double  *output) {
+    size_t idx = get_global_id(0);
+    double abs_sq = dot(image2[idx], image2[idx]);
+
+    output[idx] = pown(image1[idx] - abs_sq, 2);
+}
+
 __kernel void reduce (__global double *array,
                       __local  double *tmp,
                       unsigned long length)
