@@ -61,7 +61,8 @@
           (with-pointer-to-vector-data (dimensions-ptr dimensions-array)
             (when (zerop (%rfft buffer-ptr real-ptr imag-ptr dimensions-ptr
                                 (length dimensions)))
-              (error 'recon-error))))))
+              (error 'recon-error
+                     :format-control "Cannot perform RFFT"))))))
     (map-into (aops:flatten result)
               (lambda (r im)
                 (complex r im))
@@ -75,7 +76,8 @@
 (defun %create-gpu-context (program-path)
   (let ((context (%%create-gpu-context program-path)))
     (when (null-pointer-p context)
-      (error 'gpu-context-error))
+      (error 'recon-error
+             :format-control "Cannot create GPU context"))
     context))
 
 (defcfun ("an_destroy_gpu_context" %destroy-gpu-context) :void
@@ -92,9 +94,10 @@
 (defun %create-image (ctx fft-array dimensions)
   (declare (type (simple-array (complex double-float)) fft-array)
            (type list dimensions))
-  (if (not (equalp (array-dimensions fft-array)
-                   (rfft-array-dimensions dimensions)))
-      (error 'recon-error))
+  (when (not (equalp (array-dimensions fft-array)
+                     (rfft-array-dimensions dimensions)))
+    (error 'recon-error
+           :format-control "Dimensions are not compatible"))
   (let ((real (map-into
                (make-array (reduce #'* (array-dimensions fft-array))
                            :element-type 'double-float)
@@ -111,7 +114,8 @@
         (let ((image (%%create-image ctx real-ptr imag-ptr dimensions-ptr
                                      (length dimensions))))
           (when (null-pointer-p image)
-            (error 'gpu-context-error))
+            (error 'recon-error
+                   :format-control "Cannot upload image to GPU"))
           image))))))
 
 (defcfun ("an_destroy_image" %destroy-image) :void
@@ -138,7 +142,8 @@
 (defun %create-proximeter (image1 image2)
   (let ((proximeter (%%create-proximeter image1 image2)))
     (when (null-pointer-p proximeter)
-      (error 'gpu-context-error))
+      (error 'recon-error
+             :format-control "Cannot create proximeter object"))
     proximeter))
 
 (defcfun ("an_destroy_proximeter" %destroy-proximeter) :void

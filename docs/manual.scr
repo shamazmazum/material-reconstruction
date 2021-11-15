@@ -109,7 +109,6 @@ format. T0 is initial temperature of the system."
    @u(Conditions)
    @cl:with-package[name="material-reconstruction"](
       @cl:doc(condition recon-error)
-      @cl:doc(condition gpu-context-error)
    )
 
    @u(GPU context)

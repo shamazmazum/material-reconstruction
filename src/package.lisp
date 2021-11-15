@@ -9,7 +9,6 @@
                 #:positive-fixnum)
   (:import-from :serapeum #:->)
   (:export #:recon-error
-           #:gpu-context-error
 
            #:gpu-context
            #:create-gpu-context
