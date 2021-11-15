@@ -7,8 +7,8 @@
           :documentation "Underlying bit-array"))
   (:documentation "Basic class for two-phase images"))
 
-(defclass image-s2 (image)
-  ((sap :accessor image-sap))
+(defclass image-s2 (image gpu-object)
+  ()
   (:documentation "Class for images with associated two-point
 function. @c(context) keyword argument must hold OpenCL context. The
 context must remain alive while a created image lives."))
@@ -28,22 +28,11 @@ context must remain alive while a created image lives."))
   (:documentation "Set image pixel at coordinates specified by
 @c(coord) in row-major order to @c(val)."))
 
-(defgeneric destroy-image (image)
-  (:documentation "Destroy an image. Must be called for images which
-store data on GPU (like, @c(image-s2) images).")
-  (:method ((image image)) (values)))
-
-(defun create-image (array class &rest arguments)
-  "Create an image from a bit-array @c(array). Keyword argument
-@c(context) is a GPU context and must be specified for images of type
-@c(image-s2). @c(class) denotes a type of created image."
-  (apply #'make-instance class :array array arguments))
-
 (defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
   (let ((array (image-array image)))
-    (setf (image-sap image)
+    (setf (object-sap image)
           (%create-image
-           (context-sap context)
+           (object-sap context)
            (rfft array)
            (array-dimensions array)))))
 
@@ -62,7 +51,7 @@ store data on GPU (like, @c(image-s2) images).")
   (declare (type bit val))
   (let ((delta (- val (image-pixel image coord))))
     (call-next-method)
-    (%image-update-fft (image-sap image) delta coord))
+    (%image-update-fft (object-sap image) delta coord))
   val)
 
 (defun update-l2 (image coord function)
@@ -87,10 +76,8 @@ store data on GPU (like, @c(image-s2) images).")
   (call-next-method)
   (update-l2 image coord #'+))
 
-(defmethod destroy-image ((image image-s2))
-  "Destroy an image"
-  (declare (type image image))
-  (%destroy-image (image-sap image)))
+(defmethod destroy-gpu-object ((image-s2 image-s2))
+  (%destroy-image (object-sap image-s2)))
 
 (-> image-dimensions (image) (values list &optional))
 (defun image-dimensions (image)
@@ -106,22 +93,3 @@ store data on GPU (like, @c(image-s2) images).")
 order."
   (declare (type image image))
   (apply #'aref (image-array image) coord))
-
-(defmacro with-image ((image array class &rest arguments) &body body)
-  "Create an image @c(image) of type @c(class) and execute @c(body) in
-its scope."
-  `(let ((,image (create-image ,array ',class ,@arguments)))
-     (unwind-protect
-          (progn ,@body)
-       (destroy-image ,image))))
-
-(defmacro with-images (definitions &body body)
-  "Create multiple images and execute @c(body) in the scope of those
-images. Each definition in the list @c(definitions) must be in the
-form @c((image-var array &rest arguments)). @c(arguments) passed
-to @c(create-image) as is."
-  (flet ((wrap-definition (definition forms)
-           `(with-image ,definition ,forms)))
-    (reduce #'wrap-definition definitions
-            :from-end t
-            :initial-value `(progn ,@body))))

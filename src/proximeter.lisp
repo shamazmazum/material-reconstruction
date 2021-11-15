@@ -1,33 +1,28 @@
 (in-package :material-reconstruction)
 
-(defstruct proximeter
-  "Proximeter is a handle which must be used to get a distance between
-two images according to two-point correlation functon."
-  sap image1 image2)
+(defclass proximeter (gpu-object)
+  ((image-x :initarg :image-x
+            :type    image-s2
+            :reader  proximeter-image-x)
+   (image-y :initarg :image-y
+            :type    image-s2
+            :reader  proximeter-image-y))
+  (:documentation "Proximeter is a handle which must be used to get a
+distance between two images according to two-point correlation
+functon."))
 
-(defun create-proximeter (image1 image2)
-  "Create a @c(proximeter) structure which measures distance between
-@c(image1) and @c(image2)."
-  (declare (type image image1 image2))
-  (make-proximeter
-   :image1 image1
-   :image2 image2
-   :sap (%create-proximeter (image-sap image1)
-                            (image-sap image2))))
+(defmethod initialize-instance :after ((proximeter proximeter) &rest initargs)
+  (declare (ignore initargs))
+  (setf (object-sap proximeter)
+        (%create-proximeter
+         (object-sap (proximeter-image-x proximeter))
+         (object-sap (proximeter-image-y proximeter)))))
 
-(defun destroy-proximeter (proximeter)
-  "Destroy proximeter."
-  (%destroy-proximeter (proximeter-sap proximeter)))
+(defmethod destroy-gpu-object ((proximeter proximeter))
+  (%destroy-proximeter (object-sap proximeter)))
 
 (-> proximity (proximeter) (values double-float &optional))
 (defun proximity (proximeter)
   "Return a distance (a double-precision floating point value) between
 tracked images according to two-point correlation function."
-  (%proximity (proximeter-sap proximeter)))
-
-(defmacro with-proximeter ((proximeter image1 image2) &body body)
-  "Create proximeter and execute @c(body) in its scope."
-  `(let ((,proximeter (create-proximeter ,image1 ,image2)))
-     (unwind-protect
-          (progn ,@body)
-       (destroy-proximeter ,proximeter))))
+  (%proximity (object-sap proximeter)))

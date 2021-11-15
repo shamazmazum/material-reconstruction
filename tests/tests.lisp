@@ -33,28 +33,13 @@
 (defun test-annealing-s2 (steps &key (side 300) (t0 1d-5))
   (let* ((target-array  (create-image-with-noise side side))
          (initial-array (initialize-random target-array)))
-    (with-gpu-context (ctx)
-      (with-images ((recon  initial-array image-s2 :context ctx)
-                    (target target-array  image-s2 :context ctx))
-        (with-proximeter (proximeter recon target)
-          (let ((cost-state (make-instance 'cost-state
-                                           :proximeter proximeter
-                                           :image-x    recon
-                                           :image-y    target))
-                (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
-                (modifier   (make-modifier)))
-            (run-annealing recon target t0 steps
-                           :cost     (alexandria:curry #'cost cost-state)
-                           :cooldown cooldown
-                           :modifier modifier)
-            (cost cost-state recon target)))))))
-
-(defun test-annealing-l2 (steps &key (side 300) (t0 1d-5))
-  (let* ((target-array  (create-image-with-noise side side))
-         (initial-array (initialize-random target-array)))
-    (with-images ((recon  initial-array image-l2)
-                  (target target-array  image-l2))
+    (with-gpu-objects ((ctx gpu-context)
+                       (recon  image-s2 :array initial-array :context ctx)
+                       (target image-s2 :array target-array  :context ctx)
+                       (proximeter proximeter :image-x recon
+                                              :image-y target))
       (let ((cost-state (make-instance 'cost-state
+                                       :proximeter proximeter
                                        :image-x    recon
                                        :image-y    target))
             (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
@@ -64,6 +49,22 @@
                        :cooldown cooldown
                        :modifier modifier)
         (cost cost-state recon target)))))
+
+(defun test-annealing-l2 (steps &key (side 300) (t0 1d-5))
+  (let* ((target-array  (create-image-with-noise side side))
+         (initial-array (initialize-random target-array))
+         (recon  (make-instance 'image-l2 :array initial-array))
+         (target (make-instance 'image-l2 :array target-array))
+         (cost-state (make-instance 'cost-state
+                                    :image-x    recon
+                                    :image-y    target))
+         (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
+         (modifier   (make-modifier)))
+    (run-annealing recon target t0 steps
+                   :cost     (alexandria:curry #'cost cost-state)
+                   :cooldown cooldown
+                   :modifier modifier)
+    (cost cost-state recon target)))
 
 (in-suite annealing)
 (test annealing
@@ -76,9 +77,10 @@
 
 (in-suite l2-update)
 (test l2-update-2d
-  (let ((image (create-image
-                (make-array '(200 100) :element-type 'bit :initial-element 0)
-                'image-l2)))
+  (let ((image (make-instance
+                'image-l2
+                :array (make-array '(200 100)
+                                   :element-type 'bit :initial-element 0))))
     (loop repeat 50000 do
       (let ((coord (list (random 200)
                          (random 100))))
@@ -90,9 +92,10 @@
                 (material-reconstruction::l2 (image-array image) 1)))))
 
 (test l2-update-3d
-  (let ((image (create-image
-                (make-array '(100 50 25) :element-type 'bit :initial-element 0)
-                'image-l2)))
+  (let ((image (make-instance
+                'image-l2
+                :array (make-array '(100 50 25)
+                                   :element-type 'bit :initial-element 0))))
     (loop repeat 200000 do
       (let ((coord (list (random 100)
                          (random 50)

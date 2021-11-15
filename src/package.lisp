@@ -9,28 +9,23 @@
                 #:positive-fixnum)
   (:import-from :serapeum #:->)
   (:export #:recon-error
+           #:recon-warning
+
+           #:destroy-gpu-object
+           #:with-gpu-object
+           #:with-gpu-objects
 
            #:gpu-context
-           #:create-gpu-context
-           #:destroy-gpu-context
-           #:with-gpu-context
 
            #:image
            #:image-s2
            #:image-l2
            #:image-all
-           #:create-image
-           #:destroy-image
            #:image-pixel
            #:image-dimensions
            #:image-array
-           #:with-image
-           #:with-images
 
            #:proximeter
-           #:create-proximeter
-           #:destroy-proximeter
-           #:with-proximeter
            #:proximity
 
            #:modifier

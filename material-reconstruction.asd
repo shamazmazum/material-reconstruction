@@ -44,6 +44,7 @@
                (:file "l2")
                (:file "conditions")
                (:file "ffi")
+               (:file "gpu-object")
                (:file "gpu-context")
                (:file "image")
                (:file "proximeter")
