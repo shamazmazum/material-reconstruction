@@ -229,69 +229,6 @@ bad:
 }
 
 /* Image handling */
-
-/* Calculate FFT and upload to the GPU */
-static int an_image_fft (struct an_image *image, const uint8_t *array) {
-    // Input and output arrays
-    double       *in;
-    fftw_complex *out;
-
-    // FFT plan
-    fftw_plan p;
-
-    // Dimensions
-    size_t i;
-    struct an_array_sizes asizes = an_get_array_sizes (image->dimensions, image->ndims);
-
-    // Success
-    int ok = 1;
-
-    in  = fftw_malloc(sizeof(double)       * asizes.real);
-    out = fftw_malloc(sizeof(fftw_complex) * asizes.complex);
-    p   = fftw_plan_dft_r2c (image->ndims, (const int*)image->dimensions, in, out, FFTW_ESTIMATE);
-
-    if (p == NULL) {
-        ok = 0;
-        goto cleanup;
-    }
-
-    // Copy data to the input array and calculate FFT
-    for (i=0; i < asizes.real; i++) {
-        in[i] = array[i];
-    }
-
-    fftw_execute(p);
-
-    // Copy to GPU
-    cl_double2 *image_buf = clEnqueueMapBuffer (image->ctx->queue, image->gpu_image, CL_TRUE,
-                                                CL_MAP_WRITE, 0, sizeof(cl_double2) * asizes.complex,
-                                                0, NULL, NULL, NULL);
-    if (image_buf == NULL) {
-        ok = 0;
-        goto cleanup;
-    }
-
-    for (i=0; i < asizes.complex; i++) {
-        image_buf[i].x = out[i][0];
-        image_buf[i].y = out[i][1];
-    }
-
-cleanup:
-    if (image_buf != NULL) {
-        clFinish(image->ctx->queue);
-        clEnqueueUnmapMemObject (image->ctx->queue, image->gpu_image, image_buf, 0, NULL, NULL);
-    }
-
-    if (p != NULL) {
-        fftw_destroy_plan (p);
-    }
-
-    fftw_free (in);
-    fftw_free (out);
-
-    return ok;
-}
-
 void an_destroy_image (struct an_image *image) {
     if (image->gpu_image != NULL) {
         clReleaseMemObject (image->gpu_image);
@@ -302,7 +239,8 @@ void an_destroy_image (struct an_image *image) {
 
 struct an_image*
 an_create_image (struct an_gpu_context *ctx,
-                 const cl_uchar        *array,
+                 const cl_double       *real,
+                 const cl_double       *imag,
                  const cl_uint         *dimensions,
                  unsigned int           ndims) {
     if (ndims > AN_MAX_DIMENSIONS) {
@@ -326,10 +264,22 @@ an_create_image (struct an_gpu_context *ctx,
         goto bad;
     }
 
-    if (!an_image_fft (image, array)) {
-        fprintf (stderr, "Failed to perform FFT\n");
+    // Copy to GPU
+    cl_double2 *image_buf = clEnqueueMapBuffer (image->ctx->queue, image->gpu_image, CL_TRUE,
+                                                CL_MAP_WRITE, 0, asizes.complex * sizeof(cl_double2),
+                                                0, NULL, NULL, NULL);
+    if (image_buf == NULL) {
         goto bad;
     }
+
+    size_t i;
+    for (i=0; i < asizes.complex; i++) {
+        image_buf[i].x = real[i];
+        image_buf[i].y = imag[i];
+    }
+
+    clFinish(image->ctx->queue);
+    clEnqueueUnmapMemObject (image->ctx->queue, image->gpu_image, image_buf, 0, NULL, NULL);
 
     return image;
 

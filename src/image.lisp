@@ -40,10 +40,12 @@ store data on GPU (like, @c(image-s2) images).")
   (apply #'make-instance class :array array arguments))
 
 (defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
-  (setf (image-sap image)
-        (%create-image
-         (context-sap context)
-         (image-array image))))
+  (let ((array (image-array image)))
+    (setf (image-sap image)
+          (%create-image
+           (context-sap context)
+           (rfft array)
+           (array-dimensions array)))))
 
 (defmethod initialize-instance :after ((image image-l2) &rest initargs)
   (declare (ignore initargs))

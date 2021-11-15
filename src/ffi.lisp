@@ -84,21 +84,35 @@
 ;; Images
 (defcfun ("an_create_image" %%create-image) image
   (ctx        gpu-context)
-  (array      :pointer)
+  (real       :pointer)
+  (imag       :pointer)
   (dimensions :pointer)
   (ndims      :uint))
 
-(defun %create-image (ctx array)
-  (declare (type (simple-array bit) array))
-  (let ((buffer (array->ub8-vector array))
+(defun %create-image (ctx fft-array dimensions)
+  (declare (type (simple-array (complex double-float)) fft-array)
+           (type list dimensions))
+  (if (not (equalp (array-dimensions fft-array)
+                   (rfft-array-dimensions dimensions)))
+      (error 'recon-error))
+  (let ((real (map-into
+               (make-array (reduce #'* (array-dimensions fft-array))
+                           :element-type 'double-float)
+               #'realpart (aops:flatten fft-array)))
+        (imag (map-into
+               (make-array (reduce #'* (array-dimensions fft-array))
+                           :element-type 'double-float)
+               #'imagpart (aops:flatten fft-array)))
         ;; XXX: Not "shareable array", but OK for SBCL
-        (dimensions (list->ub32-vector (array-dimensions array))))
-    (with-pointer-to-vector-data (buffer-ptr buffer)
+        (dimensions (list->ub32-vector dimensions)))
+    (with-pointer-to-vector-data (real-ptr real)
+      (with-pointer-to-vector-data (imag-ptr imag)
       (with-pointer-to-vector-data (dimensions-ptr dimensions)
-        (let ((image (%%create-image ctx buffer-ptr dimensions-ptr (length dimensions))))
+        (let ((image (%%create-image ctx real-ptr imag-ptr dimensions-ptr
+                                     (length dimensions))))
           (when (null-pointer-p image)
             (error 'gpu-context-error))
-          image)))))
+          image))))))
 
 (defcfun ("an_destroy_image" %destroy-image) :void
   (image image))
