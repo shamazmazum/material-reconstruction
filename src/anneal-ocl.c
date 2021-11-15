@@ -64,6 +64,58 @@ an_get_array_sizes (const cl_uint *dimensions,
     return result;
 }
 
+/* Fourier transform */
+int an_rfft (const cl_uchar        *array,
+             cl_double             *real,
+             cl_double             *imag,
+             const cl_uint         *dimensions,
+             unsigned int           ndims) {
+    // Input and output arrays
+    cl_double    *in;
+    fftw_complex *out;
+
+    // FFT plan
+    fftw_plan p;
+
+    // Dimensions
+    size_t i;
+    struct an_array_sizes asizes = an_get_array_sizes (dimensions, ndims);
+
+    // Success
+    int ok = 1;
+
+    in  = fftw_malloc(sizeof(double)       * asizes.real);
+    out = fftw_malloc(sizeof(fftw_complex) * asizes.complex);
+    p   = fftw_plan_dft_r2c (ndims, (const int*)dimensions, in, out, FFTW_ESTIMATE);
+
+    if (p == NULL) {
+        ok = 0;
+        goto cleanup;
+    }
+
+    // Copy data to the input array and calculate FFT
+    for (i=0; i < asizes.real; i++) {
+        in[i] = array[i];
+    }
+
+    fftw_execute(p);
+
+    for (i=0; i < asizes.complex; i++) {
+        real[i] = out[i][0];
+        imag[i] = out[i][1];
+    }
+
+cleanup:
+    if (p != NULL) {
+        fftw_destroy_plan (p);
+    }
+
+    fftw_free (in);
+    fftw_free (out);
+
+    return ok;
+}
+
 /* Context handling */
 void an_destroy_gpu_context (struct an_gpu_context *ctx) {
     if (ctx->reduce != NULL) {

@@ -6,6 +6,13 @@ struct an_gpu_context;
 struct an_image;
 struct an_proximeter;
 
+/* Fourier transform */
+int an_rfft (const cl_uchar        *array,
+             cl_double             *real,
+             cl_double             *imag,
+             const cl_uint         *dimensions,
+             unsigned int           ndims);
+
 /* GPU context */
 struct an_gpu_context*
 an_create_gpu_context (const char *program);
