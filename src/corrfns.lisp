@@ -7,10 +7,10 @@
 ;; Separate s2 correlation function class
 (defclass corrfn-s2 (corrfn gpu-object)
   ()
-  (:documentation "Class for S₂ correlation functions without
-association with an image. @c(:context) keyword argument must hold
-OpenCL context. The context must remain alive while a created image
-lives. @c(:corrfn) keyword must hold S₂ correlation function and
+  (:documentation "Class for S₂ (two-point) correlation functions
+without association with an image. @c(:context) keyword argument must
+hold OpenCL context. The context must remain alive while a created
+image lives. @c(:s2) keyword must hold S₂ correlation function and
 @c(:dimensions) are dimensions of the original image."))
 
 (defclass corrfn-l2 (corrfn)
@@ -20,7 +20,7 @@ lives. @c(:corrfn) keyword must hold S₂ correlation function and
    (l2-solid :initarg  :l2-solid
              :accessor l2-solid
              :type     list))
-  (:documentation "Lineal-path correlation function for solid and void phases"))
+  (:documentation "Lineal-path correlation function for solid and void phases."))
 
 (defmethod initialize-instance :after ((corrfn-s2 corrfn-s2)
                                        &key context s2 dimensions &allow-other-keys)

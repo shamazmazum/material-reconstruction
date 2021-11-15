@@ -14,8 +14,9 @@ function. @c(context) keyword argument must hold OpenCL context. The
 context must remain alive while a created image lives."))
 
 (defclass image-l2 (image)
-  ((l2 :accessor image-l2
-       :type     corrfn-l2))
+  ((l2 :accessor      image-l2
+       :type          corrfn-l2
+       :documentation "Lineal-path function of the image"))
   (:documentation "Class for images with associated lineal-path function"))
 
 (defgeneric (setf image-pixel) (val image coord)
@@ -75,6 +76,7 @@ context must remain alive while a created image lives."))
 
 (-> image-dimensions (image) (values list &optional))
 (defun image-dimensions (image)
+  "Get image dimensions."
   (declare (type image image))
   (array-dimensions (image-array image)))
 

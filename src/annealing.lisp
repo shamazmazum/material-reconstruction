@@ -2,13 +2,13 @@
 
 (defun annealing-step (target recon temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
-@c(system) minimising cost function @c(cost). @c(cost) is a function
-which takes two @c(image) objects and returns a real number. It
-usually takes into account one or two correlation functions. For more
-information, see documentation abount function with the same name
-@c(cost).
+the image @c(recon) minimising @c(cost). @c(cost) is a function
+which takes one @c(corrfn) and one @c(image) object and returns a real
+number. It usually takes into account one or two correlation
+functions. For more information, see documentation abount function
+with the same name @c(cost).
 
-Modifications to the system are controlled by @c(modifier)
+Modifications to the reconstructed image are controlled by @c(modifier)
 argument. Currently implemented modifiers are @c(flipper), @c(swapper)
 and @c(batch-modifier). A modifier needs a sampler to take samples
 from the system. Two implemented samplers are @c(interface-sampler)

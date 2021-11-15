@@ -67,36 +67,51 @@ the opposite."
                  :modifier (make-instance 'flipper
                                           :sampler (make-instance 'interface-sampler))))
 
-(defun test-annealing (original initial steps &key dimensions (t0 1d-5))
-  "Run simulation of annealing for STEPS steps. INITIAL is the name of a
-file with initial approximation of ORIGINAL. ORIGINAL and INITIAL are
-file names of images with dimensions stored in the list DIMENSIONS in raw
-format. T0 is initial temperature of the system."
-  ;; Load images
-  (let ((original-array (read-image original dimensions))
-        (initial-array  (read-image initial  dimensions)))
-    ;; Create GPU context
-    (with-gpu-context (ctx)
-      ;; Upload images to GPU
-      (with-images ((image1 initial-array  image-s2 :context ctx)
-                    (image2 original-array image-s2 :context ctx))
-        ;; Create proximeter — an object which measures a distance
-        ;; between two images according to two-point correlation
-        ;; function.
-        (with-proximeter (proximeter image1 image2)
-          (let ((cost-state (make-instance 'cost-state
-                                           :proximeter proximeter
-                                           :image-x image1
-                                           :image-y image2)) ; Used in calculation of cost function
-                (cooldown   (aarts-korst-cooldown :n 10000 :alpha 0.01d0)) ; Create cooldown schedule
-                (modifier   (make-modifier))) ; Create a modifier
-            ;; RUN-ANNEALING is a helper function which calls ANNEALING-STEP STEPS times.
-            (run-annealing image1 image2 t0 steps
-                           :cost     (alexandria:curry #'cost cost-state)
-                           :cooldown cooldown
-                           :modifier modifier)))
-        ;; Return the resulting bit array
-        (image-array image1)))))
+(defclass image-all (image-s2 image-l2)
+  ()
+  (:documentation "Image with S₂ and L₂ correlation functions"))
+
+(defclass corrfn-all (corrfn-s2 corrfn-l2)
+  ()
+  (:documentation "L₂ and S₂ correlation functions of the original"))
+
+(defun test-annealing/w-init (array steps &key (t0 1d-5))
+  "Run simulation of annealing for STEPS steps. ARRAY is the original binary
+image. T0 is initial temperature of the system."
+  (declare (type (simple-array bit) array))
+  (with-gpu-objects (;; Create OpenCL context
+                     (ctx gpu-context)
+                     ;; Calculate correlation functions of the original
+                     (target corrfn-all
+                             ;; We have to supply OpenCL context if we use S₂ function
+                             :context    ctx
+                             :s2        (s2 array)
+                             :l2-void   (l2 array 0)
+                             :l2-solid  (l2 array 1)
+                             ;; Always pass dimensions of the original
+                             :dimensions (array-dimensions array))
+                     ;; Create an image which will be reconstructed
+                     (recon  image-all
+                             ;; Pass OpenCL context.
+                             :context ctx
+                             ;; In case of image, you only need to supply an initial approximation.
+                             :array   (initialize-random array))
+                     ;; 
+                     (proximeter proximeter
+                                 :target target
+                                 :recon  recon))
+    (let ((cost-state (make-instance 'cost-state
+                                     :proximeter proximeter
+                                     :target target
+                                     :recon  recon))
+          (cooldown  (aarts-korst-cooldown :n 25000 :alpha 1d0))
+          (modifier  (make-modifier)))
+      (make-instance 'annealing-results
+                     :cost (run-annealing target recon t0 steps
+                                          :cost     (alexandria:curry #'cost cost-state)
+                                          :cooldown cooldown
+                                          :modifier modifier)
+                     :array (image-array recon)))))
    @end(code)
 
    The original image: @image[src=original.png]()

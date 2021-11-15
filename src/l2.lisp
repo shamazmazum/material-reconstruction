@@ -31,6 +31,9 @@
 
 (-> l2 ((simple-array bit) bit) (values list &optional))
 (defun l2 (array val)
+  "Calculate lineal-path function for bit-array @c(array). @c(val) is
+a phase for which lineal-path function is calculated. The result is
+not normalized."
   (declare (optimize (speed 3))
            (type (simple-array bit) array))
   (let ((dimensions (array-dimensions array)))

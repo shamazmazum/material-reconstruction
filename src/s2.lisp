@@ -1,6 +1,9 @@
 (in-package :material-reconstruction)
 
 (defun s2 (array)
+  "Calculate two-point correlation function for the solid phase of the
+bit-array @c(array). The result is not normalized and in frequency
+domain."
   (declare (type (simple-array bit) array))
   (let* ((fft (rfft array))
          (s2  (make-array (array-dimensions fft)

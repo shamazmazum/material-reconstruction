@@ -44,6 +44,7 @@
   (ndims      :int))
 
 (defun rfft (array)
+  "Perform FFT on an array of bits. Array may be of any sizes and dimensions."
   (declare (type (simple-array bit) array))
   (let* ((dimensions (array-dimensions array))
          (rfft-dimensions (rfft-array-dimensions dimensions))

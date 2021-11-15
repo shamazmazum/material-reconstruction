@@ -7,10 +7,10 @@
    (initial-cost  :type          list
                   :accessor      cost-initial))
   (:documentation "An instance of this object is required for
-calculation of a cost function. @c(:image-x) and @c(:image-y) are two
-images which must be specified to calculate the weights for
-correlation functions. @c(proximeter) object must be specified when
-@c(image-x) and @c(image-y) are of type @c(image-s2)."))
+calculation of a cost function. @c(:target) is the target set of
+correlation functions and @c(:recon) is an image under
+reconstruction. @c(proximeter) object must be specified when 
+two-point correlation function is used."))
 
 (defgeneric image-distance (cost target recon)
   (:documentation "Unscaled difference between images accroding to
@@ -56,11 +56,11 @@ some metric")
         (image-distance cost target recon)))
 
 (defun cost (cost target recon)
-  "Calculate cost function for images @c(image-x) and
-@c(image-y). @c(cost) is an object of type @c(cost-state) created for
-these two images. Correlation functions used in the calculation depend
-on class of @c(image-x) and @c(image-y) arguments which can be either
-@c(image-l2), @c(image-s2) or @c(image-all).
+  "Calculate cost function for the image @c(recon) and the target set
+of correlation functions @c(target). @c(cost) is an object of type
+@c(cost-state) created for the same @c(recon) and
+@c(target). Correlation functions used in the calculation depend on
+class of @c(recon) and @c(target).
 
 Function like (alexadria:curry #'cost cost-state) can be used as a
 cost function in @c(annealing-step)."

@@ -24,5 +24,5 @@ functon."))
 (-> proximity (proximeter) (values double-float &optional))
 (defun proximity (proximeter)
   "Return a distance (a double-precision floating point value) between
-tracked images according to two-point correlation function."
+the tracked image and target two-point correlation function."
   (%proximity (object-sap proximeter)))
