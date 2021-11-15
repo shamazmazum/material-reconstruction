@@ -28,11 +28,18 @@ struct an_gpu_context {
     size_t group_size;
 };
 
+enum an_image_type {
+    AN_IMAGE_TYPE_UNKNOWN,
+    AN_IMAGE_TYPE_IMAGE,
+    AN_IMAGE_TYPE_CORRFN,
+};
+
 struct an_image {
     struct an_gpu_context *ctx;
     cl_mem                 gpu_image;
     cl_uint                dimensions[AN_MAX_DIMENSIONS];
     unsigned int           ndims;
+    enum an_image_type     type;
 };
 
 struct an_proximeter {
@@ -255,6 +262,7 @@ an_create_image (struct an_gpu_context *ctx,
     memcpy (&image->dimensions[0], dimensions, sizeof (cl_uint) * ndims);
     image->ctx   = ctx;
     image->ndims = ndims;
+    image->type  = AN_IMAGE_TYPE_IMAGE;
 
     image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
                                        asizes.complex * sizeof(cl_double2), NULL, NULL);
@@ -288,6 +296,48 @@ bad:
     return NULL;
 }
 
+struct an_image*
+an_create_corrfn (struct an_gpu_context *ctx,
+                  const cl_double       *corrfn,
+                  const cl_uint         *dimensions,
+                  unsigned int           ndims) {
+    if (ndims > AN_MAX_DIMENSIONS) {
+        fprintf (stderr, "Number of dimensions is too high: %u", ndims);
+        return NULL;
+    }
+
+    struct an_array_sizes asizes = an_get_array_sizes (dimensions, ndims);
+    struct an_image *image = malloc (sizeof (struct an_image));
+
+    memset (image, 0, sizeof (struct an_image));
+    memcpy (&image->dimensions[0], dimensions, sizeof (cl_uint) * ndims);
+    image->ctx   = ctx;
+    image->ndims = ndims;
+    image->type  = AN_IMAGE_TYPE_CORRFN;
+
+    image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
+                                       asizes.complex * sizeof(cl_double), NULL, NULL);
+    if (image->gpu_image == NULL) {
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
+                 asizes.complex);
+        goto bad;
+    }
+
+    // Copy to GPU
+    if (clEnqueueWriteBuffer (ctx->queue, image->gpu_image, CL_TRUE,
+                              0, asizes.complex * sizeof(cl_double),
+                              corrfn, 0, NULL, NULL) != CL_SUCCESS) {
+        fprintf (stderr, "Cannot copy data to GPU\n");
+        goto bad;
+    }
+
+    return image;
+
+bad:
+    an_destroy_image (image);
+    return NULL;
+}
+
 void an_image_update_fft (struct an_image *image,
                           const cl_uint   *coord,
                           unsigned int     ndims,
@@ -298,6 +348,11 @@ void an_image_update_fft (struct an_image *image,
 
     if (ndims != image->ndims) {
         fprintf (stderr, "Wrong dimensions\n");
+        return;
+    }
+
+    if (image->type != AN_IMAGE_TYPE_IMAGE) {
+        fprintf (stderr, "Wrong image type\n");
         return;
     }
 

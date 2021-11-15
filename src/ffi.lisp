@@ -118,6 +118,33 @@
                    :format-control "Cannot upload image to GPU"))
           image))))))
 
+(defcfun ("an_create_corrfn" %%create-corrfn) image
+  (ctx        gpu-context)
+  (corrfn     :pointer)
+  (dimensions :pointer)
+  (ndims      :uint))
+
+(defun %create-corrfn (ctx corrfn-array dimensions)
+  (declare (type (simple-array double-float) corrfn-array)
+           (type list dimensions))
+  (when (not (equalp (array-dimensions corrfn-array)
+                     (rfft-array-dimensions dimensions)))
+    (error 'recon-error
+           :format-control "Dimensions are not compatible"))
+  (let ((corrfn-array (map-into
+                       (make-array (reduce #'* (array-dimensions corrfn-array))
+                                   :element-type 'double-float)
+                       #'identity (aops:flatten corrfn-array)))
+        (dimensions (list->ub32-vector dimensions)))
+    (with-pointer-to-vector-data (corrfn-ptr corrfn-array)
+      (with-pointer-to-vector-data (dimensions-ptr dimensions)
+        (let ((image (%%create-corrfn ctx corrfn-ptr dimensions-ptr
+                                      (length dimensions))))
+          (when (null-pointer-p image)
+            (error 'recon-error
+                   :format-control "Cannot upload image to GPU"))
+          image)))))
+
 (defcfun ("an_destroy_image" %destroy-image) :void
   (image image))
 

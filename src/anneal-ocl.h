@@ -16,6 +16,7 @@ int an_rfft (const cl_uchar        *array,
 /* GPU context */
 struct an_gpu_context*
 an_create_gpu_context (const char *program);
+
 void
 an_destroy_gpu_context (struct an_gpu_context *ctx);
 
@@ -26,6 +27,13 @@ an_create_image (struct an_gpu_context *ctx,
                  const cl_double       *imag,
                  const cl_uint         *dimensions,
                  unsigned int           ndims);
+
+struct an_image*
+an_create_corrfn (struct an_gpu_context *ctx,
+                  const cl_double       *corrfn,
+                  const cl_uint         *dimensions,
+                  unsigned int           ndims);
+
 void
 an_destroy_image (struct an_image *image);
 
@@ -39,5 +47,7 @@ an_image_update_fft (struct an_image *image,
 struct an_proximeter*
 an_create_proximeter (struct an_image *image1,
                       struct an_image *image2);
+
 void an_destroy_proximeter (struct an_proximeter *proximeter);
+
 cl_double an_proximity (struct an_proximeter *proximeter);
