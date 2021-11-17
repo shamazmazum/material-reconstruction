@@ -34,10 +34,8 @@ context must remain alive while a created image lives."))
 (defmethod initialize-instance :after ((image image-l2) &rest initargs)
   (declare (ignore initargs))
   (setf (image-l2 image)
-        (let ((array (image-array image)))
-          (make-instance 'corrfn-l2
-                         :l2-solid (l2 array 1)
-                         :l2-void  (l2 array 0)))))
+        (make-instance 'corrfn-l2
+                       :array (image-array image))))
 
 (defmethod (setf image-pixel) (val (image image) coord)
   (setf (apply #'aref (image-array image) coord) val))
