@@ -37,13 +37,11 @@
 (in-suite annealing)
 (test annealing-s2
   (let* ((target-array  (create-image-with-noise 100 100))
-         (target-s2     (s2 target-array))
          (initial-array (initialize-random target-array)))
     (with-gpu-objects ((ctx gpu-context)
                        (recon  image-s2  :array initial-array
                                          :context ctx)
-                       (target corrfn-s2 :s2 target-s2
-                                         :dimensions (array-dimensions target-array)
+                       (target corrfn-s2 :array target-array
                                          :context ctx))
       (let ((cost-state (make-instance 'cost-state
                                        :target target
@@ -60,10 +58,8 @@
 (test annealing-l2
   (let* ((target-array  (create-image-with-noise 100 100))
          (initial-array (initialize-random target-array))
-         (recon  (make-instance 'image-l2 :array initial-array))
-         (target (make-instance 'corrfn-l2
-                                :l2-void  (l2 target-array 0)
-                                :l2-solid (l2 target-array 1)))
+         (recon  (make-instance 'image-l2  :array initial-array))
+         (target (make-instance 'corrfn-l2 :array target-array))
          (cost-state (make-instance 'cost-state
                                     :target target
                                     :recon  recon))
