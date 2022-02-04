@@ -56,7 +56,8 @@
    </p><pre><code class="lisp">(defpackage annealing-test
   (:use #:cl #:recon)
   (:import-from #:alexandria #:curry)
-  (:export #:test-annealing))
+  (:export #:test-annealing-w/-init
+           #:read-image))
 (in-package :annealing-test)
 
 (defun read-image (name dimensions)
@@ -86,7 +87,7 @@ the opposite.&quot;
   ()
   (:documentation &quot;L₂ and S₂ correlation functions of the original&quot;))
 
-(defun test-annealing/w-init (array steps &amp;key (t0 1d-5))
+(defun test-annealing-w/-init (array steps &amp;key (t0 1d-5))
   &quot;Run simulation of annealing for STEPS steps. ARRAY is the original binary
 image. T0 is initial temperature of the system.&quot;
   (declare (type (simple-array bit) array))
@@ -95,12 +96,8 @@ image. T0 is initial temperature of the system.&quot;
                      ;; Calculate correlation functions of the original
                      (target corrfn-all
                              ;; We have to supply OpenCL context if we use S₂ function
-                             :context    ctx
-                             :s2        (s2 array)
-                             :l2-void   (l2 array 0)
-                             :l2-solid  (l2 array 1)
-                             ;; Always pass dimensions of the original
-                             :dimensions (array-dimensions array))
+                             :context ctx
+                             :array   array)
                      ;; Create an image which will be reconstructed
                      (recon  image-all
                              ;; Pass OpenCL context.
@@ -115,16 +112,16 @@ image. T0 is initial temperature of the system.&quot;
           (cooldown  (aarts-korst-cooldown :n 25000 :alpha 1d0))
           ;; Make modifier object
           (modifier  (make-modifier)))
-      (make-instance 'annealing-results
-                     ;; run-annealing runs simulated annealing with initial temperature t0
-                     ;; iterating steps times and returns a list containing values of the cost
-                     ;; function at each step
-                     :cost (run-annealing target recon t0 steps
-                                          :cost     (alexandria:curry #'cost cost-state)
-                                          :cooldown cooldown
-                                          :modifier modifier)
-                     ;; Get reconstructed image
-                     :array (image-array recon)))))
+      (values
+       ;; run-annealing runs simulated annealing with initial temperature t0
+       ;; iterating steps times and returns a list containing values of the cost
+       ;; function at each step
+       (run-annealing target recon t0 steps
+                      :cost     (alexandria:curry #'cost cost-state)
+                      :cooldown cooldown
+                      :modifier modifier)
+       ;; Get reconstructed image
+       (image-array recon)))))
    </code></pre><p>   The original image: <img src="original.png"/>
    The initial approximation: <img src="init.png"/>
    The reconstruction: <img src="reconstruction.png"/>
