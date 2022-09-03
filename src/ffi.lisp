@@ -169,6 +169,6 @@
 (defun %distance (target-sap recon-sap)
   (with-foreign-object (distance-ptr :double)
     (when (zerop (%%distance target-sap recon-sap distance-ptr))
-      (error 'recon-erron
+      (error 'recon-error
              :format-control "Cannot calculate distance between images"))
     (mem-ref distance-ptr :double)))
