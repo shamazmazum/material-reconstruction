@@ -6,7 +6,6 @@ struct update_data {
     unsigned int dimensions[MAX_DIMENSIONS];
     unsigned int point[MAX_DIMENSIONS];
     unsigned int stride[MAX_DIMENSIONS];
-    unsigned int ndims;
 };
 
 __kernel void sparse_ft (__global double2 *image,
@@ -14,9 +13,9 @@ __kernel void sparse_ft (__global double2 *image,
                          double c) {
     double angle = 0;
     size_t idx = 0;
-    unsigned int i;
+    unsigned int i, ndims = get_work_dim();
 
-    for (i=0; i<upd.ndims; i++) {
+    for (i=0; i<ndims; i++) {
         size_t id = get_global_id(i);
         angle += (double)upd.point[i] * (double)id / (double)upd.dimensions[i];
         idx += upd.stride[i] * id;

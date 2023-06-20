@@ -13,7 +13,6 @@ struct an_update_data {
     cl_uint dimensions[AN_MAX_DIMENSIONS];
     cl_uint point[AN_MAX_DIMENSIONS];
     cl_uint stride[AN_MAX_DIMENSIONS];
-    cl_uint ndims;
 };
 
 struct an_gpu_context {
@@ -359,8 +358,6 @@ void an_image_update_fft (struct an_image *image,
         fprintf (stderr, "Wrong image type\n");
         return;
     }
-
-    upd.ndims = image->ndims;
 
     for (i=0; i<image->ndims; i++) {
         upd.dimensions[i] = image->dimensions[i];
