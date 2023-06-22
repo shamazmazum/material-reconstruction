@@ -6,18 +6,18 @@
   :defsystem-depends-on (:material-reconstruction-asdf)
   :depends-on (:cffi
                :array-operations
+               :select
                :alexandria
                :serapeum)
   :serial t
   :pathname "src/"
-  :components ((c-library "anneal-ocl")
+  :components ((c-library "anneal")
                (:file "package")
                (:file "slices")
                (:file "iterators")
                (:file "l2")
                (:file "conditions")
                (:file "ffi")
-               (:file "s2")
                (:file "gpu-object")
                (:file "gpu-context")
                (:file "corrfns")

@@ -27,6 +27,7 @@
            #:image-pixel
            #:image-dimensions
            #:image-array
+           #:image-gpu-s2 ; For tests
 
            #:corrfn
            #:corrfn-s2

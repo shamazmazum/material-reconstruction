@@ -1,42 +1,83 @@
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-
 #define MAX_DIMENSIONS 3
 
 struct update_data {
-    unsigned int dimensions[MAX_DIMENSIONS];
-    unsigned int point[MAX_DIMENSIONS];
-    unsigned int stride[MAX_DIMENSIONS];
+    unsigned int dimensions[MAX_DIMENSIONS]; // (or the input image)
+    unsigned int im_stride[MAX_DIMENSIONS];
+    unsigned int s2_stride[MAX_DIMENSIONS];
+    unsigned int index[MAX_DIMENSIONS]; // index (into image) of the updated point
 };
 
-__kernel void sparse_ft (__global double2 *image,
-                         struct update_data upd,
-                         double c) {
-    double angle = 0;
-    size_t idx = 0;
-    unsigned int i, ndims = get_work_dim();
-
-    for (i=0; i<ndims; i++) {
-        size_t id = get_global_id(i);
-        angle += (double)upd.point[i] * (double)id / (double)upd.dimensions[i];
-        idx += upd.stride[i] * id;
+size_t get_index(unsigned int *stride,
+                 unsigned int *index,
+                 unsigned int  ndims) {
+    size_t i, lindex = 0;
+    for (i = 0; i < ndims; i++) {
+        lindex += stride[i] * index[i];
     }
 
-    angle = 2 * M_PI * angle;
-    image[idx].x += c * cos(angle);
-    image[idx].y -= c * sin(angle);
+    return lindex;
 }
 
-__kernel void metric (__global double  *image1,
-                      __global double2 *image2,
-                      __global double  *output) {
+// Dimensionality of the kernel = 1×…×1
+__kernel void update_image(__global unsigned char *image,
+                           struct update_data update) {
+    int ndims = get_work_dim();
+    size_t index = get_index(update.im_stride, update.index, ndims);
+
+    image[index] = 1 - image[index];
+}
+
+// Dimensionality of the kernel = dimensionality of s2 array
+__kernel void update_s2(__global unsigned char *image,
+                        __global unsigned long *s2,
+                        struct update_data update) {
+    int i, ndims = get_work_dim();
+    int index[MAX_DIMENSIONS];
+    size_t flat_index_s2;
+    size_t flat_index_image = get_index(update.im_stride, update.index, ndims);
+
+    // Determine sign and update image
+    char val = image[flat_index_image];
+    char sign = 1 - 2*val;
+
+    for (i = 0; i < ndims; i++) {
+        index[i] = get_global_id(i);
+    }
+    flat_index_s2 = get_index(update.s2_stride, index, ndims);
+
+    if (flat_index_s2 == 0) {
+        s2[0] += sign;
+    } else {
+        char diff = 0;
+        // Look forward
+        for (i = 0; i < ndims; i++) {
+            index[i] = (update.index[i] + get_global_id(i))
+                % update.dimensions[i];
+        }
+        flat_index_image = get_index(update.im_stride, index, ndims);
+        diff += image[flat_index_image];
+
+        // Look backward
+        for (i = 0; i < ndims; i++) {
+            index[i] = (update.index[i] + update.dimensions[i] - get_global_id(i))
+                % update.dimensions[i];
+        }
+        flat_index_image = get_index(update.im_stride, index, ndims);
+        diff += image[flat_index_image];
+
+        s2[flat_index_s2] += sign * diff;
+    }
+}
+
+__kernel void metric (__global unsigned long *s21,
+                      __global unsigned long *s22,
+                      __global unsigned long *output) {
     size_t idx = get_global_id(0);
-    double abs_sq = dot(image2[idx], image2[idx]);
-
-    output[idx] = pown(image1[idx] - abs_sq, 2);
+    output[idx] = abs((long)s21[idx] - (long)s22[idx]);
 }
 
-__kernel void reduce (__global double *array,
-                      __local  double *tmp,
+__kernel void reduce (__global unsigned long *array,
+                      __local  unsigned long *tmp,
                       unsigned long length)
 {
     size_t global_size = get_global_size(0);
@@ -45,7 +86,7 @@ __kernel void reduce (__global double *array,
     size_t local_size = get_local_size(0);
     size_t group_num = get_group_id(0);
     size_t i;
-    double acc = 0.0;
+    long acc = 0;
 
     for (i=0; i<length; i+=global_size) {
         size_t idx = global_idx + i;

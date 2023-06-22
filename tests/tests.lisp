@@ -4,6 +4,8 @@
   :description "Test simulated annealing")
 (def-suite l2-update
   :description "Test lineal-path function updates")
+(def-suite s2-update
+  :description "Test two-point function updates")
 
 (defun run-tests ()
   "Run all tests and return T if all tests have passed"
@@ -12,7 +14,7 @@
                    (let ((status (run suite)))
                      (explain! status)
                      (results-status status)))
-                 '(annealing l2-update))))
+                 '(annealing l2-update s2-update))))
 
 (defun create-image-with-noise (h w)
   (let ((array (make-array (list h w) :element-type 'bit)))
@@ -23,6 +25,14 @@
                                 :seed (random 20000))
                    0.5)
                 0 1)))
+    array))
+
+(defun create-random-array (side ndims)
+  (let ((array (make-array (loop repeat ndims collect side)
+                           :element-type 'bit)))
+    (aops:each-index (i)
+      (setf (row-major-aref array i)
+            (random 2)))
     array))
 
 (defun make-modifier ()
@@ -103,3 +113,25 @@
                 (material-reconstruction::l2 (image-array image) 0)))
     (is (equalp (material-reconstruction::l2-solid (image-l2 image))
                 (material-reconstruction::l2 (image-array image) 1)))))
+
+(in-suite s2-update)
+(defun test-s2-update (size ndims)
+  (let ((data (create-random-array size ndims)))
+    (with-gpu-objects ((ctx gpu-context)
+                       (image image-s2
+                              :array   data
+                              :context ctx))
+      (loop repeat 5000
+            for index = (loop repeat ndims collect (random size)) do
+            (setf (image-pixel image index)
+                  (- 1 (image-pixel image index))))
+      (is (equalp (s2 data) (image-gpu-s2 image))))))
+
+(test s2-update-1d
+  (test-s2-update 10000 1))
+
+(test s2-update-2d
+  (test-s2-update 1000 2))
+
+(test s2-update-3d
+  (test-s2-update 100 3))

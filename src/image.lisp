@@ -23,13 +23,14 @@ context must remain alive while a created image lives."))
   (:documentation "Set image pixel at coordinates specified by
 @c(coord) in row-major order to @c(val)."))
 
+(defgeneric image-gpu-s2 (image)
+  (:documentation "Get S₂ function from GPU memory"))
+
 (defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
-  (let ((array (image-array image)))
-    (setf (object-sap image)
-          (%create-image
-           (object-sap context)
-           (rfft array)
-           (array-dimensions array)))))
+  (setf (object-sap image)
+        (%create-image
+         (object-sap context)
+         (image-array image))))
 
 (defmethod initialize-instance :after ((image image-l2) &rest initargs)
   (declare (ignore initargs))
@@ -41,11 +42,9 @@ context must remain alive while a created image lives."))
   (setf (apply #'aref (image-array image) coord) val))
 
 (defmethod (setf image-pixel) (val (image image-s2) coord)
-  (declare (type bit val))
-  (let ((delta (- val (image-pixel image coord))))
-    (call-next-method)
-    (%image-update-fft (object-sap image) delta coord))
-  val)
+  (when (/= (image-pixel image coord) val)
+    (%image-flip-pixel (object-sap image) coord))
+  (call-next-method))
 
 (defun update-l2 (image coord function)
   (declare (optimize (speed 3))
@@ -68,6 +67,10 @@ context must remain alive while a created image lives."))
   (update-l2 image coord #'-)
   (call-next-method)
   (update-l2 image coord #'+))
+
+(defmethod image-gpu-s2 ((image-s2 image-s2))
+  (%image-s2 (object-sap image-s2)
+             (array-dimensions (image-array image-s2))))
 
 (defmethod destroy-gpu-object ((image-s2 image-s2))
   (%destroy-image (object-sap image-s2)))
