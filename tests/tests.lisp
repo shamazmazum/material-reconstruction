@@ -126,7 +126,7 @@
             for index = (loop repeat ndims collect (random size)) do
             (setf (image-pixel image index)
                   (- 1 (image-pixel image index))))
-      (is (equalp (s2 data) (image-gpu-s2 image))))))
+      (is (equalp (shifted-s2 data) (image-gpu-s2 image))))))
 
 (test s2-update-1d
   (test-s2-update 10000 1))

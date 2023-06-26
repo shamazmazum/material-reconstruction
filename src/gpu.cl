@@ -4,6 +4,7 @@ struct update_data {
     unsigned int dimensions[MAX_DIMENSIONS]; // (or the input image)
     unsigned int im_stride[MAX_DIMENSIONS];
     unsigned int s2_stride[MAX_DIMENSIONS];
+    unsigned int s2_origin[MAX_DIMENSIONS];
     unsigned int index[MAX_DIMENSIONS]; // index (into image) of the updated point
 };
 
@@ -33,7 +34,7 @@ __kernel void update_s2(__global unsigned char *image,
                         struct update_data update) {
     int i, ndims = get_work_dim();
     int index[MAX_DIMENSIONS];
-    size_t flat_index_s2;
+    size_t flat_index_s2, flat_index_s2_origin;
     size_t flat_index_image = get_index(update.im_stride, update.index, ndims);
 
     // Determine sign and update image
@@ -45,13 +46,18 @@ __kernel void update_s2(__global unsigned char *image,
     }
     flat_index_s2 = get_index(update.s2_stride, index, ndims);
 
-    if (flat_index_s2 == 0) {
-        s2[0] += sign;
+    for (i = 0; i < ndims; i++) {
+        index[i] = update.dimensions[i] / 2;
+    }
+    flat_index_s2_origin = get_index(update.s2_stride, index, ndims);
+
+    if (flat_index_s2 == flat_index_s2_origin) {
+        s2[flat_index_s2] += sign;
     } else {
         char diff = 0;
         // Look forward
         for (i = 0; i < ndims; i++) {
-            index[i] = (update.index[i] + get_global_id(i))
+            index[i] = (update.dimensions[i] + update.index[i] + get_global_id(i) - update.s2_origin[i])
                 % update.dimensions[i];
         }
         flat_index_image = get_index(update.im_stride, index, ndims);
@@ -59,7 +65,7 @@ __kernel void update_s2(__global unsigned char *image,
 
         // Look backward
         for (i = 0; i < ndims; i++) {
-            index[i] = (update.index[i] + update.dimensions[i] - get_global_id(i))
+            index[i] = (update.dimensions[i] + update.index[i] + update.s2_origin[i] - get_global_id(i))
                 % update.dimensions[i];
         }
         flat_index_image = get_index(update.im_stride, index, ndims);

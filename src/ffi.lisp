@@ -117,7 +117,7 @@
 
 (defun %create-image (ctx image)
   (let ((s2-buffer
-         (let ((s2 (s2 image)))
+         (let ((s2 (shifted-s2 image)))
            (map-into
             (make-array (array-total-size s2)
                         :element-type '(unsigned-byte 64))
