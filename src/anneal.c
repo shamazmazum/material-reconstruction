@@ -66,66 +66,66 @@ an_get_array_sizes (const cl_uint *dimensions,
     return result;
 }
 
-int an_s2 (const cl_uchar *array,
-           float_t        *s2,
-           const cl_uint  *dimensions,
-           cl_uint         ndims) {
+int
+an_rfft (const float   *in,
+         fftwf_complex *out,
+         const cl_uint *dimensions,
+         cl_uint        ndims) {
     float         *input;
     fftwf_complex *output;
-
-    fftwf_plan forward;
-    fftwf_plan inverse;
-
-    int res = 1;
+    fftwf_plan plan;
     size_t i;
 
     struct an_array_sizes asizes = an_get_array_sizes(dimensions, ndims);
 
-    input   = fftwf_malloc(sizeof(float)         * asizes.image);
-    output  = fftwf_malloc(sizeof(fftwf_complex) * asizes.s2);
-    forward = fftwf_plan_dft_r2c (ndims, (cl_int*)dimensions, input, output, FFTW_ESTIMATE);
-    inverse = fftwf_plan_dft_c2r (ndims, (cl_int*)dimensions, output, input, FFTW_ESTIMATE);
+    input  = fftwf_malloc(sizeof(float)         * asizes.image);
+    output = fftwf_malloc(sizeof(fftwf_complex) * asizes.s2);
+    plan   = fftwf_plan_dft_r2c (ndims, (cl_int*)dimensions, input, output, FFTW_ESTIMATE);
 
-    if (forward == NULL || inverse == NULL) {
-        res = 0;
-        goto cleanup;
+    if (plan == NULL) {
+        return 0;
     }
 
-    // Convert input to floats
-    for (i = 0; i < asizes.image; i++) {
-        input[i] = array[i];
-    }
+    memcpy(input, in, sizeof(float) * asizes.image);
+    fftwf_execute (plan);
+    memcpy(out, output, sizeof(fftwf_complex) * asizes.s2);
 
-    // Perform DFT
-    fftwf_execute (forward);
-
-    // Calculate S₂ in frequency domain
-    for (i = 0; i < asizes.s2; i++) {
-        output[i][0] = output[i][0] * output[i][0] + output[i][1] * output[i][1];
-        output[i][1] = 0;
-    }
-
-    // Perform IDFT
-    fftwf_execute (inverse);
-
-    // Copy to result
-    for (i = 0; i < asizes.image; i++) {
-        s2[i] = input[i];
-    }
-
-cleanup:
     fftwf_free (input);
     fftwf_free (output);
+    fftwf_destroy_plan (plan);
 
-    if (forward != NULL) {
-        fftwf_destroy_plan (forward);
+    return 1;
+}
+
+int
+an_irfft (const fftwf_complex *in,
+          float               *out,
+          const cl_uint       *dimensions,
+          cl_uint              ndims) {
+    fftwf_complex *input;
+    float         *output;
+    fftwf_plan plan;
+    size_t i;
+
+    struct an_array_sizes asizes = an_get_array_sizes(dimensions, ndims);
+
+    input  = fftwf_malloc(sizeof(fftwf_complex) * asizes.s2);
+    output = fftwf_malloc(sizeof(float)         * asizes.image);
+    plan   = fftwf_plan_dft_c2r (ndims, (cl_int*)dimensions, input, output, FFTW_ESTIMATE);
+
+    if (plan == NULL) {
+        return 0;
     }
 
-    if (inverse != NULL) {
-        fftwf_destroy_plan (inverse);
-    }
+    memcpy(input, in, sizeof(fftwf_complex) * asizes.s2);
+    fftwf_execute (plan);
+    memcpy(out, output, sizeof(float) * asizes.image);
 
-    return res;
+    fftwf_free (input);
+    fftwf_free (output);
+    fftwf_destroy_plan (plan);
+
+    return 1;
 }
 
 /* Context handling */

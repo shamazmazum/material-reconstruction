@@ -5,11 +5,17 @@
 struct an_gpu_context;
 struct an_image;
 
-/* Unnormalized S₂ computation */
-int an_s2 (const cl_uchar *array,
-           float          *s2,
-           const cl_uint  *dimensions,
-           cl_uint         ndims);
+int
+an_rfft (const float   *in,
+         fftwf_complex *out,
+         const cl_uint *dimensions,
+         cl_uint        ndims);
+
+int
+an_irfft (const fftwf_complex *in,
+          float               *out,
+          const cl_uint       *dimensions,
+          cl_uint              ndims);
 
 /* GPU context */
 struct an_gpu_context*

@@ -13,10 +13,11 @@
   :pathname "src/"
   :components ((c-library "anneal")
                (:file "package")
-               #+nil
-               (:file "l2")
                (:file "conditions")
                (:file "ffi")
+               #+nil
+               (:file "l2")
+               (:file "s2")
                (:file "gpu-object")
                (:file "gpu-context")
                (:file "corrfns")

@@ -15,13 +15,6 @@
   (map '(vector (unsigned-byte 32))
        #'identity list))
 
-(defun array->ub8-vector (array)
-  (map-into
-   (make-shareable-byte-vector
-    (array-total-size array))
-   #'identity
-   (aops:flatten array)))
-
 (defun dimensions-image->s2 (dimensions)
   (loop with length = (length dimensions)
         for d in dimensions
@@ -29,41 +22,76 @@
         (if (= i (1- length))
             (1+ (floor d 2)) d)))
 
-(defun dimensions->ranges (dimensions)
-  (mapcar
-   (lambda (d)
-     (select:range 0 d))
-   dimensions))
-
-;; S₂ calculation
-(defcfun ("an_s2" %s2) :int
-  (array      (:pointer :uint8))
-  (s2         (:pointer :uint64))
+;; DFT calculation
+(defcfun ("an_rfft" %rfft) :int
+  (in         (:pointer :float))
+  (out        (:pointer :float))
   (dimensions (:pointer :uint32))
   (ndims      :uint32))
 
-(-> s2 ((simple-array bit))
-         (values (simple-array (unsigned-byte 64)) &optional))
-(defun s2 (array)
-  "Calculate S₂ function for multidimensional bit array ARRAY."
-  (let ((input (array->ub8-vector array))
-        (output (make-array (array-total-size array) :element-type 'single-float))
-        (s2 (make-array (array-dimensions array) :element-type '(unsigned-byte 64)))
-        (dim-array (list->ub32-vector (array-dimensions array))))
-    (with-pointer-to-vector-data (input-ptr input)
-      (with-pointer-to-vector-data (output-ptr output)
-          (with-pointer-to-vector-data (dim-ptr dim-array)
-            (when (zerop (%s2 input-ptr output-ptr dim-ptr (array-rank array)))
+(-> rfft ((simple-array single-float))
+    (values (simple-array (complex single-float)) &optional))
+(defun rfft (array)
+  "Calculate DFT for an array of single floats"
+  (let* ((dimensions (array-dimensions array))
+         (dft-dimensions (dimensions-image->s2 dimensions))
+         (input-buffer   (map-into
+                          (make-array (array-total-size array)
+                                      :element-type 'single-float)
+                          #'identity
+                          (aops:flatten array)))
+         (output (make-array dft-dimensions
+                             :element-type '(complex single-float)))
+         (output-buffer (make-array (* 2 (reduce #'* dft-dimensions))
+                                    :element-type 'single-float))
+         (dim-vector (list->ub32-vector dimensions)))
+    (with-pointer-to-vector-data (input-ptr input-buffer)
+      (with-pointer-to-vector-data (output-ptr output-buffer)
+          (with-pointer-to-vector-data (dim-ptr dim-vector)
+            (when (zerop (%rfft input-ptr output-ptr dim-ptr (array-rank array)))
               (error 'recon-error
-                     :format-control "Cannot calculate S₂ function")))))
-    (map-into (aops:flatten s2)
-              (lambda (x)
-                (round (/ x (array-total-size array))))
-               output)
-    (apply #'select:select s2
-           (dimensions->ranges
-            (dimensions-image->s2
-             (array-dimensions array))))))
+                     :format-control "Cannot calculate DFT function")))))
+    (loop for i below (array-total-size output) do
+          (setf (row-major-aref output i)
+                (complex
+                 (aref output-buffer (* i 2))
+                 (aref output-buffer (1+ (* i 2))))))
+    output))
+
+(defcfun ("an_irfft" %irfft) :int
+  (in         (:pointer :float))
+  (out        (:pointer :float))
+  (dimensions (:pointer :uint32))
+  (ndims      :uint32))
+
+(-> irfft ((simple-array (complex single-float)) list)
+    (values (simple-array single-float) &optional))
+(defun irfft (array dimensions)
+  (unless (equalp (array-dimensions array)
+                  (dimensions-image->s2 dimensions))
+    (error 'recon-error
+           :format-control "DFT: Dimensions mismatch (~a vs ~a)"
+           :format-arguments (list (array-dimensions array) dimensions)))
+  (let ((input-buffer (make-array (* 2 (array-total-size array))
+                                  :element-type 'single-float))
+        (output-buffer (make-array (reduce #'* dimensions)
+                                   :element-type 'single-float))
+        (output (make-array dimensions :element-type 'single-float))
+        (dim-vector (list->ub32-vector dimensions)))
+    (loop for i below (array-total-size array) do
+          (let ((element (row-major-aref array i)))
+            (setf (aref input-buffer (* i 2))
+                  (realpart element)
+                  (aref input-buffer (1+ (* i 2)))
+                  (imagpart element))))
+    (with-pointer-to-vector-data (input-ptr input-buffer)
+      (with-pointer-to-vector-data (output-ptr output-buffer)
+        (with-pointer-to-vector-data (dim-ptr dim-vector)
+            (when (zerop (%irfft input-ptr output-ptr dim-ptr (array-rank array)))
+              (error 'recon-error
+                     :format-control "Cannot calculate DFT function")))))
+    (map-into (aops:flatten output) #'identity output-buffer)
+    output))
 
 ;; GPU context
 (defcfun ("an_create_gpu_context" %%create-gpu-context) gpu-context
