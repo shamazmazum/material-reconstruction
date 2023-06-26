@@ -8,12 +8,14 @@
                 #:non-negative-fixnum
                 #:positive-fixnum)
   (:import-from :serapeum #:->)
+  (:local-nicknames (#:si #:stateless-iterators))
   (:export #:recon-error
            #:recon-warning
 
            ;; Correlation functions
            #:l2
            #:s2
+           #:shifted-s2
 
            #:destroy-gpu-object
            #:with-gpu-object

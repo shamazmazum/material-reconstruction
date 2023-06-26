@@ -7,6 +7,7 @@
   :depends-on (:cffi
                :array-operations
                :select
+               :stateless-iterators
                :alexandria
                :serapeum)
   :serial t
