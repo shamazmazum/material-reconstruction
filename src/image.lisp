@@ -46,6 +46,7 @@ context must remain alive while a created image lives."))
     (%image-flip-pixel (object-sap image) coord))
   (call-next-method))
 
+#+nil
 (defun update-l2 (image coord function)
   (declare (optimize (speed 3))
            (type function function))
@@ -63,6 +64,7 @@ context must remain alive while a created image lives."))
                       l2-dir (l2-slice slice phase)))))))
   image)
 
+#+nil
 (defmethod (setf image-pixel) :around (val (image image-l2) coord)
   (update-l2 image coord #'-)
   (call-next-method)

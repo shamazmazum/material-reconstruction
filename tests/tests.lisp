@@ -14,7 +14,7 @@
                    (let ((status (run suite)))
                      (explain! status)
                      (results-status status)))
-                 '(annealing l2-update s2-update))))
+                 '(annealing #+nil l2-update s2-update))))
 
 (defun create-image-with-noise (h w)
   (let ((array (make-array (list h w) :element-type 'bit)))
@@ -65,6 +65,7 @@
                          :modifier modifier))
         (is (< (cost cost-state target recon) 0.9))))))
 
+#+nil
 (test annealing-l2
   (let* ((target-array  (create-image-with-noise 100 100))
          (initial-array (initialize-random target-array))

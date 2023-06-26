@@ -13,8 +13,7 @@
   :pathname "src/"
   :components ((c-library "anneal")
                (:file "package")
-               (:file "slices")
-               (:file "iterators")
+               #+nil
                (:file "l2")
                (:file "conditions")
                (:file "ffi")
