@@ -15,7 +15,6 @@
            ;; Correlation functions
            #:l2
            #:s2
-           #:shifted-s2
 
            #:destroy-gpu-object
            #:with-gpu-object
