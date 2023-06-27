@@ -2,8 +2,6 @@
 
 (def-suite annealing
   :description "Test simulated annealing")
-(def-suite l2-update
-  :description "Test lineal-path function updates")
 (def-suite s2-update
   :description "Test two-point function updates")
 
@@ -14,7 +12,7 @@
                    (let ((status (run suite)))
                      (explain! status)
                      (results-status status)))
-                 '(annealing #+nil l2-update s2-update))))
+                 '(annealing s2-update))))
 
 (defun create-image-with-noise (h w)
   (let ((array (make-array (list h w) :element-type 'bit)))
@@ -64,56 +62,6 @@
                          :cooldown cooldown
                          :modifier modifier))
         (is (< (cost cost-state target recon) 0.9))))))
-
-#+nil
-(test annealing-l2
-  (let* ((target-array  (create-image-with-noise 100 100))
-         (initial-array (initialize-random target-array))
-         (recon  (make-instance 'image-l2  :array initial-array))
-         (target (make-instance 'corrfn-l2 :array target-array))
-         (cost-state (make-instance 'cost-state
-                                    :target target
-                                    :recon  recon))
-         (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
-         (modifier   (make-modifier)))
-    (muffle-output
-      (run-annealing target recon 1d-5 10000
-                     :cost     (alexandria:curry #'cost cost-state)
-                     :cooldown cooldown
-                     :modifier modifier))
-    (is (< (cost cost-state target recon) 0.9))))
-
-(in-suite l2-update)
-(test l2-update-2d
-  (let ((image (make-instance
-                'image-l2
-                :array (make-array '(200 100)
-                                   :element-type 'bit :initial-element 0))))
-    (loop repeat 50000 do
-      (let ((coord (list (random 200)
-                         (random 100))))
-        (setf (image-pixel image coord)
-              (- 1 (image-pixel image coord)))))
-    (is (equalp (material-reconstruction::l2-void (image-l2 image))
-                (material-reconstruction::l2 (image-array image) 0)))
-    (is (equalp (material-reconstruction::l2-solid (image-l2 image))
-                (material-reconstruction::l2 (image-array image) 1)))))
-
-(test l2-update-3d
-  (let ((image (make-instance
-                'image-l2
-                :array (make-array '(100 50 25)
-                                   :element-type 'bit :initial-element 0))))
-    (loop repeat 200000 do
-      (let ((coord (list (random 100)
-                         (random 50)
-                         (random 25))))
-        (setf (image-pixel image coord)
-              (- 1 (image-pixel image coord)))))
-    (is (equalp (material-reconstruction::l2-void (image-l2 image))
-                (material-reconstruction::l2 (image-array image) 0)))
-    (is (equalp (material-reconstruction::l2-solid (image-l2 image))
-                (material-reconstruction::l2 (image-array image) 1)))))
 
 (in-suite s2-update)
 (defun test-s2-update (size ndims)

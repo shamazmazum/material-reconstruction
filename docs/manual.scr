@@ -68,14 +68,6 @@ the opposite."
                  :modifier (make-instance 'flipper
                                           :sampler (make-instance 'interface-sampler))))
 
-(defclass image-all (image-s2 image-l2)
-  ()
-  (:documentation "Image with S₂ and L₂ correlation functions"))
-
-(defclass corrfn-all (corrfn-s2 corrfn-l2)
-  ()
-  (:documentation "L₂ and S₂ correlation functions of the original"))
-
 (defun test-annealing-w/-init (array steps &key (t0 1d-5))
   "Run simulation of annealing for STEPS steps. ARRAY is the original binary
 image. T0 is initial temperature of the system."
@@ -83,12 +75,12 @@ image. T0 is initial temperature of the system."
   (with-gpu-objects (;; Create OpenCL context
                      (ctx gpu-context)
                      ;; Calculate correlation functions of the original
-                     (target corrfn-all
+                     (target corrfn-s2
                              ;; We have to supply OpenCL context if we use S₂ function
                              :context ctx
                              :array   array)
                      ;; Create an image which will be reconstructed
-                     (recon  image-all
+                     (recon  image-s2
                              ;; Pass OpenCL context.
                              :context ctx
                              ;; In case of image, you only need to supply an initial approximation.

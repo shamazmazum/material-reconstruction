@@ -34,19 +34,6 @@ some metric")
                (expt (float (- x y) 0d0) 2))
              vector1 vector2)))
 
-(defmethod image-distance list ((cost cost-state)
-                                (target corrfn-l2)
-                                (recon  image-l2))
-  (let ((recon-l2 (image-l2 recon)))
-    (cons :l2
-          (+
-           (reduce #'+ (mapcar #'euclidean-distance
-                               (l2-void target)
-                               (l2-void recon-l2)))
-           (reduce #'+ (mapcar #'euclidean-distance
-                               (l2-solid target)
-                               (l2-solid recon-l2)))))))
-
 (defmethod initialize-instance :after ((cost cost-state)
                                        &key target recon &allow-other-keys)
   (setf (cost-initial cost)
