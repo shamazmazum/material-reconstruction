@@ -8,7 +8,10 @@
   (:documentation "Basic class for two-phase images"))
 
 (defclass image-s2 (image gpu-object)
-  ()
+  ((shifts :initarg  :shifts
+           :accessor image-s2-shifts
+           :initform nil
+           :type     list))
   (:documentation "Class for images with associated two-point
 function. @c(context) keyword argument must hold OpenCL context. The
 context must remain alive while a created image lives."))
@@ -26,11 +29,16 @@ context must remain alive while a created image lives."))
 (defgeneric image-gpu-s2 (image)
   (:documentation "Get S₂ function from GPU memory"))
 
-(defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
-  (setf (object-sap image)
-        (%create-image
-         (object-sap context)
-         (image-array image))))
+(defmethod initialize-instance :after ((image image-s2)
+                                       &key context &allow-other-keys)
+  (let ((array (image-array image)))
+    (unless (image-s2-shifts image)
+      (setf (image-s2-shifts image)
+            (maximal-shifts array)))
+    (setf (object-sap image)
+          (%create-image
+           (object-sap context) array
+           (image-s2-shifts image)))))
 
 (defmethod initialize-instance :after ((image image-l2) &rest initargs)
   (declare (ignore initargs))
@@ -72,7 +80,7 @@ context must remain alive while a created image lives."))
 
 (defmethod image-gpu-s2 ((image-s2 image-s2))
   (%image-s2 (object-sap image-s2)
-             (array-dimensions (image-array image-s2))))
+             (image-s2-shifts image-s2)))
 
 (defmethod destroy-gpu-object ((image-s2 image-s2))
   (%destroy-image (object-sap image-s2)))

@@ -27,9 +27,10 @@ an_destroy_gpu_context (struct an_gpu_context *ctx);
 /* Image object */
 struct an_image*
 an_create_image (struct an_gpu_context *ctx,
-                 const cl_uchar        *image,
+                 const cl_uchar        *image, // can be NULL
                  const cl_ulong        *s2,
-                 const cl_uint         *dimensions,
+                 const cl_uint         *dimensions, // can be NULL
+                 const cl_uint         *s2_shifts,
                  unsigned int           ndims);
 
 void

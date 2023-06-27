@@ -117,16 +117,19 @@
 
 (in-suite s2-update)
 (defun test-s2-update (size ndims)
-  (let ((data (create-random-array size ndims)))
+  (let ((data (create-random-array size ndims))
+        (shifts (loop for i from 0 by 1
+                      repeat ndims collect (+ i 40))))
     (with-gpu-objects ((ctx gpu-context)
                        (image image-s2
                               :array   data
+                              :shifts  shifts
                               :context ctx))
       (loop repeat 5000
             for index = (loop repeat ndims collect (random size)) do
             (setf (image-pixel image index)
                   (- 1 (image-pixel image index))))
-      (is (equalp (s2 data) (image-gpu-s2 image))))))
+      (is (equalp (s2 data shifts) (image-gpu-s2 image))))))
 
 (test s2-update-1d
   (test-s2-update 10000 1))

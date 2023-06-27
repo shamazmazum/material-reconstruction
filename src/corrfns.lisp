@@ -23,14 +23,14 @@ image lives. @c(:s2) keyword must hold S₂ correlation function and
   (:documentation "Lineal-path correlation function for solid and void phases."))
 
 (defmethod initialize-instance :after ((corrfn-s2 corrfn-s2)
-                                       &key context array s2 dimensions
+                                       &key context array s2 shifts
                                        &allow-other-keys)
-  (let ((s2         (if array (s2 array) s2))
-        (dimensions (if array (array-dimensions array) dimensions)))
+  (let* ((shifts (if shifts shifts (maximal-shifts array)))
+         (s2     (if array (s2 array shifts) s2)))
     (setf (object-sap corrfn-s2)
           (%create-corrfn
            (object-sap context)
-           s2 dimensions))))
+           s2 shifts))))
 
 #+nil
 (defmethod initialize-instance :after ((corrfn-l2 corrfn-l2)

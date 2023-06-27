@@ -15,7 +15,7 @@
   (map '(vector (unsigned-byte 32))
        #'identity list))
 
-(defun dimensions-image->s2 (dimensions)
+(defun dimensions-rdft (dimensions)
   (loop with length = (length dimensions)
         for d in dimensions
         for i from 0 by 1 collect
@@ -34,7 +34,7 @@
 (defun rfft (array)
   "Calculate DFT for an array of single floats"
   (let* ((dimensions (array-dimensions array))
-         (dft-dimensions (dimensions-image->s2 dimensions))
+         (dft-dimensions (dimensions-rdft dimensions))
          (input-buffer   (map-into
                           (make-array (array-total-size array)
                                       :element-type 'single-float)
@@ -68,7 +68,7 @@
     (values (simple-array single-float) &optional))
 (defun irfft (array dimensions)
   (unless (equalp (array-dimensions array)
-                  (dimensions-image->s2 dimensions))
+                  (dimensions-rdft dimensions))
     (error 'recon-error
            :format-control "DFT: Dimensions mismatch (~a vs ~a)"
            :format-arguments (list (array-dimensions array) dimensions)))
@@ -113,11 +113,12 @@
   (image      (:pointer :uint8))
   (s2         (:pointer :uint64))
   (dimensions (:pointer :uint32))
+  (s2-shifts  (:pointer :uint32))
   (ndims      :uint))
 
-(defun %create-image (ctx image)
+(defun %create-image (ctx image shifts)
   (let ((s2-buffer
-         (let ((s2 (s2 image)))
+         (let ((s2 (s2 image shifts)))
            (map-into
             (make-array (array-total-size s2)
                         :element-type '(unsigned-byte 64))
@@ -127,26 +128,31 @@
                                    :element-type '(unsigned-byte 8))
                        #'identity (aops:flatten image)))
         (dimensions (map '(vector (unsigned-byte 32))
-                         #'identity (array-dimensions image))))
+                         #'identity (array-dimensions image)))
+        (shifts (map '(vector (unsigned-byte 32))
+                     #'identity shifts)))
     (with-pointer-to-vector-data (image-ptr image-buffer)
       (with-pointer-to-vector-data (s2-ptr s2-buffer)
         (with-pointer-to-vector-data (dimensions-ptr dimensions)
-          (let ((gpu-image (%%create-image ctx image-ptr s2-ptr dimensions-ptr (array-rank image))))
+          (with-pointer-to-vector-data (shifts-ptr shifts)
+          (let ((gpu-image (%%create-image ctx image-ptr s2-ptr dimensions-ptr shifts-ptr
+                                           (array-rank image))))
             (when (null-pointer-p gpu-image)
               (error 'recon-error :format-control "Cannot create GPU image"))
-            gpu-image))))))
+            gpu-image)))))))
 
-(defun %create-corrfn (ctx s2 dimensions)
+;; FIXME: Can we infer SHIFTS from S2?
+(defun %create-corrfn (ctx s2 shifts)
   (let ((s2-buffer (map-into
                     (make-array (array-total-size s2)
                                 :element-type '(unsigned-byte 64))
                     #'identity (aops:flatten s2)))
-        (dimensions (map '(vector (unsigned-byte 32))
-                         #'identity dimensions)))
+        (shifts (map '(vector (unsigned-byte 32))
+                     #'identity shifts)))
     (with-pointer-to-vector-data (s2-ptr s2-buffer)
-      (with-pointer-to-vector-data (dimensions-ptr dimensions)
-        (let ((gpu-image (%%create-image ctx (cffi:null-pointer)
-                                         s2-ptr dimensions-ptr (array-rank s2))))
+      (with-pointer-to-vector-data (shifts-ptr shifts)
+        (let ((gpu-image (%%create-image ctx (cffi:null-pointer) s2-ptr (cffi:null-pointer) shifts-ptr
+                                         (array-rank s2))))
           (when (null-pointer-p gpu-image)
             (error 'recon-error :format-control "Cannot create S₂ GPU image"))
           gpu-image)))))
@@ -184,12 +190,19 @@
 
 ;; Debugging & tests
 
+;; FIXME: Works only for even dimensions of S₂
+(defun shifts->s2-dimensions (shifts)
+  (loop for s in shifts
+        for i from 1 by 1 collect
+        (if (= i (length shifts))
+            (1+ s) (* 2 s))))
+
 (defcfun ("an_image_get_s2" %%image-s2) :int
   (image image)
   (s2    (:pointer :uint64)))
 
-(defun %image-s2 (image dimensions)
-  (let* ((s2-dimensions (dimensions-image->s2 dimensions))
+(defun %image-s2 (image shifts)
+  (let* ((s2-dimensions (shifts->s2-dimensions shifts))
          (s2 (make-array s2-dimensions :element-type '(unsigned-byte 64)))
          (s2-buffer (make-array (reduce #'* s2-dimensions) :element-type '(unsigned-byte 64))))
     (with-pointer-to-vector-data (s2-ptr s2-buffer)

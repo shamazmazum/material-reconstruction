@@ -39,32 +39,35 @@ struct an_image {
     size_t s2_update_dims[AN_MAX_DIMENSIONS];
     size_t image_update_dims[AN_MAX_DIMENSIONS];
 
+    size_t image_total_size;
+    size_t s2_total_size;
+
     unsigned int ndims;
 };
 
 struct an_array_sizes {
-    size_t image;
-    size_t s2;
+    size_t real;
+    size_t complex;
 };
 
 static struct an_array_sizes
 an_get_array_sizes (const cl_uint *dimensions,
                     unsigned int   ndims) {
     struct an_array_sizes result;
-    result.image = 1;
-    result.s2 = 1;
+    result.real    = 1;
+    result.complex = 1;
 
     unsigned int i;
 
     for (i=0; i<ndims; i++) {
-        result.image *= dimensions[i];
+        result.real *= dimensions[i];
     }
 
     for (i=0; i<ndims-1; i++) {
-        result.s2 *= dimensions[i];
+        result.complex *= dimensions[i];
     }
 
-    result.s2 *= dimensions[ndims - 1] / 2 + 1;
+    result.complex *= dimensions[ndims - 1] / 2 + 1;
     return result;
 }
 
@@ -80,17 +83,17 @@ an_rfft (const float   *in,
 
     struct an_array_sizes asizes = an_get_array_sizes(dimensions, ndims);
 
-    input  = fftwf_malloc(sizeof(float)         * asizes.image);
-    output = fftwf_malloc(sizeof(fftwf_complex) * asizes.s2);
+    input  = fftwf_malloc(sizeof(float)         * asizes.real);
+    output = fftwf_malloc(sizeof(fftwf_complex) * asizes.complex);
     plan   = fftwf_plan_dft_r2c (ndims, (cl_int*)dimensions, input, output, FFTW_ESTIMATE);
 
     if (plan == NULL) {
         return 0;
     }
 
-    memcpy(input, in, sizeof(float) * asizes.image);
+    memcpy(input, in, sizeof(float) * asizes.real);
     fftwf_execute (plan);
-    memcpy(out, output, sizeof(fftwf_complex) * asizes.s2);
+    memcpy(out, output, sizeof(fftwf_complex) * asizes.complex);
 
     fftwf_free (input);
     fftwf_free (output);
@@ -111,17 +114,17 @@ an_irfft (const fftwf_complex *in,
 
     struct an_array_sizes asizes = an_get_array_sizes(dimensions, ndims);
 
-    input  = fftwf_malloc(sizeof(fftwf_complex) * asizes.s2);
-    output = fftwf_malloc(sizeof(float)         * asizes.image);
+    input  = fftwf_malloc(sizeof(fftwf_complex) * asizes.complex);
+    output = fftwf_malloc(sizeof(float)         * asizes.real);
     plan   = fftwf_plan_dft_c2r (ndims, (cl_int*)dimensions, input, output, FFTW_ESTIMATE);
 
     if (plan == NULL) {
         return 0;
     }
 
-    memcpy(input, in, sizeof(fftwf_complex) * asizes.s2);
+    memcpy(input, in, sizeof(fftwf_complex) * asizes.complex);
     fftwf_execute (plan);
-    memcpy(out, output, sizeof(float) * asizes.image);
+    memcpy(out, output, sizeof(float) * asizes.real);
 
     fftwf_free (input);
     fftwf_free (output);
@@ -244,31 +247,31 @@ an_destroy_image (struct an_image *image) {
 }
 
 static int
-create_and_fill_image_buffer (struct an_image      *image,
-                              const  cl_uchar      *ptr,
-                              struct an_array_sizes asizes) {
+create_and_fill_image_buffer (struct an_image *image,
+                              const  cl_uchar *ptr) {
     struct an_gpu_context *ctx = image->ctx;
 
     image->tmp = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                 asizes.s2 * sizeof(cl_ulong), NULL, NULL);
+                                 image->s2_total_size * sizeof(cl_ulong), NULL, NULL);
     if (image->tmp == NULL) {
         fprintf (stderr, "Cannot allocate temporary GPU buffer (%lu bytes)\n",
-                 asizes.s2);
+                 image->s2_total_size);
         return 0;
     }
 
     image->image = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                   asizes.image * sizeof(cl_uchar), NULL, NULL);
+                                   image->image_total_size * sizeof(cl_uchar), NULL, NULL);
     if (image->image == NULL) {
         fprintf (stderr, "Cannot allocate GPU buffer for image (%lu bytes)\n",
-                 asizes.image);
+                 image->image_total_size);
         return 0;
     }
 
-    if (clEnqueueWriteBuffer (ctx->queue, image->image, CL_TRUE, 0, sizeof(cl_uchar) * asizes.image,
+    if (clEnqueueWriteBuffer (ctx->queue, image->image, CL_TRUE, 0,
+                              sizeof(cl_uchar) * image->image_total_size,
                               ptr, 0, NULL, NULL) != CL_SUCCESS) {
         fprintf (stderr, "Cannot write image to GPU buffer (%lu bytes)\n",
-                 asizes.image);
+                 image->image_total_size);
         return 0;
     }
 
@@ -276,23 +279,23 @@ create_and_fill_image_buffer (struct an_image      *image,
 }
 
 static int
-create_and_fill_s2_buffer (struct an_image      *image,
-                           const  cl_ulong      *ptr,
-                           struct an_array_sizes asizes) {
+create_and_fill_s2_buffer (struct an_image *image,
+                           const  cl_ulong *ptr) {
     struct an_gpu_context *ctx = image->ctx;
 
     image->s2 = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                asizes.s2 * sizeof(cl_ulong), NULL, NULL);
+                                image->s2_total_size * sizeof(cl_ulong), NULL, NULL);
     if (image->s2 == NULL) {
         fprintf (stderr, "Cannot allocate GPU buffer for s2 (%lu bytes)\n",
-                 asizes.s2);
+                 image->s2_total_size);
         return 0;
     }
 
-    if (clEnqueueWriteBuffer (ctx->queue, image->s2, CL_TRUE, 0, sizeof(cl_ulong) * asizes.s2,
+    if (clEnqueueWriteBuffer (ctx->queue, image->s2, CL_TRUE, 0,
+                              sizeof(cl_ulong) * image->s2_total_size,
                               ptr, 0, NULL, NULL) != CL_SUCCESS) {
         fprintf (stderr, "Cannot write s2 to GPU buffer (%lu bytes)\n",
-                 asizes.s2);
+                 image->s2_total_size);
         return 0;
     }
 
@@ -304,6 +307,7 @@ an_create_image (struct an_gpu_context *ctx,
                  const cl_uchar        *buffer,
                  const cl_ulong        *s2,
                  const cl_uint         *dimensions,
+                 const cl_uint         *s2_shift,
                  unsigned int           ndims) {
     assert (s2 != NULL);
 
@@ -312,43 +316,56 @@ an_create_image (struct an_gpu_context *ctx,
         return NULL;
     }
 
-    struct an_array_sizes asizes = an_get_array_sizes (dimensions, ndims);
     struct an_image *image = malloc (sizeof (struct an_image));
     struct an_update_data *update = &image->update_data;
     int i;
 
     memset (image, 0, sizeof (struct an_image));
-    memcpy(&update->dimensions[0], dimensions, sizeof(cl_uint)*AN_MAX_DIMENSIONS);
+    memcpy(&update->s2_shift[0], s2_shift, sizeof(cl_uint)*AN_MAX_DIMENSIONS);
     image->ctx   = ctx;
     image->ndims = ndims;
 
+    // Works only for even dimensions
     for (i = 0; i < ndims-1; i++) {
-        image->s2_update_dims[i] = dimensions[i];
+        image->s2_update_dims[i] = 2*s2_shift[i];
     }
-    image->s2_update_dims[ndims-1] = dimensions[ndims-1] / 2 + 1;
+    image->s2_update_dims[ndims-1] = s2_shift[ndims-1] + 1;
 
     for (i = 0; i < ndims; i++) {
         image->image_update_dims[i] = 1;
     }
 
-    update->im_stride[ndims-1] = 1;
+    image->s2_total_size = 1;
+    for (i = 0; i < ndims; i++) {
+        image->s2_total_size *= image->s2_update_dims[i];
+    }
+
     update->s2_stride[ndims-1] = 1;
     for (i = image->ndims-2; i >= 0; i--) {
-        update->im_stride[i] = update->dimensions[i + 1]    * update->im_stride[i + 1];
         update->s2_stride[i] = image->s2_update_dims[i + 1] * update->s2_stride[i + 1];
     }
 
     for (i = 0; i < ndims; i++) {
-        update->s2_shift[i] = update->dimensions[i] / 2;
         update->flat_s2_origin += update->s2_shift[i] * update->s2_stride[i];
     }
 
-    if (!create_and_fill_s2_buffer (image, s2, asizes)) {
+    if (!create_and_fill_s2_buffer (image, s2)) {
         goto bad;
     }
 
-    if (buffer != NULL) {
-        if (!create_and_fill_image_buffer (image, buffer, asizes)) {
+    if (buffer != NULL && dimensions != NULL) {
+        memcpy(&update->dimensions[0], dimensions, sizeof(cl_uint)*AN_MAX_DIMENSIONS);
+        image->image_total_size = 1;
+        for (i = 0; i < ndims; i++) {
+            image->image_total_size *= dimensions[i];
+        }
+
+        update->im_stride[ndims-1] = 1;
+        for (i = image->ndims-2; i >= 0; i--) {
+            update->im_stride[i] = update->dimensions[i + 1] * update->im_stride[i + 1];
+        }
+
+        if (!create_and_fill_image_buffer (image, buffer)) {
             goto bad;
         }
 
@@ -420,10 +437,9 @@ an_image_flip_pixel (struct an_image *image,
 
 int an_image_get_s2 (struct an_image *image,
                      cl_ulong        *s2) {
-    struct an_array_sizes asizes = an_get_array_sizes (image->update_data.dimensions, image->ndims);
     struct an_gpu_context *ctx = image->ctx;
-    int res = clEnqueueReadBuffer(ctx->queue, image->s2, CL_TRUE, 0, sizeof(cl_ulong) * asizes.s2, s2,
-                                  0, NULL, NULL);
+    int res = clEnqueueReadBuffer(ctx->queue, image->s2, CL_TRUE, 0,
+                                  sizeof(cl_ulong) * image->s2_total_size, s2, 0, NULL, NULL);
 
     return res == CL_SUCCESS;
 }
@@ -434,10 +450,9 @@ int an_image_get_image (struct an_image *image,
         return 0;
     }
 
-    struct an_array_sizes asizes = an_get_array_sizes (image->update_data.dimensions, image->ndims);
     struct an_gpu_context *ctx = image->ctx;
-    int res = clEnqueueReadBuffer(ctx->queue, image->image, CL_TRUE, 0, sizeof(cl_uchar) * asizes.image,
-                                  buffer, 0, NULL, NULL);
+    int res = clEnqueueReadBuffer(ctx->queue, image->image, CL_TRUE, 0,
+                                  sizeof(cl_uchar) * image->image_total_size, buffer, 0, NULL, NULL);
 
     return res == CL_SUCCESS;
 }
@@ -446,24 +461,23 @@ int
 an_distance (struct an_image *target,
              struct an_image *recon,
              cl_ulong        *distance) {
-    if (recon->tmp     == NULL         ||
-        recon->metric  == NULL         ||
-        recon->reduce  == NULL         ||
-        target->ctx   != recon->ctx    ||
-        target->ndims != recon->ndims  ||
-        memcmp (target->update_data.dimensions,
-                recon->update_data.dimensions,
-                sizeof(cl_uint) * target->ndims) != 0) {
+    if (recon->tmp            == NULL                 ||
+        recon->metric         == NULL                 ||
+        recon->reduce         == NULL                 ||
+        target->ctx           != recon->ctx           ||
+        target->ndims         != recon->ndims         ||
+        target->s2_total_size != recon->s2_total_size ||
+        memcmp (target->s2_update_dims, recon->s2_update_dims,
+                sizeof(size_t) * target->ndims) != 0) {
         return 0;
     }
 
     struct an_gpu_context *ctx = recon->ctx;
-    struct an_array_sizes asizes = an_get_array_sizes (recon->update_data.dimensions, recon->ndims);
 
     size_t gs   = ctx->group_size;
     size_t gssq = gs * gs;
 
-    cl_ulong dim1 = asizes.s2;
+    cl_ulong dim1 = recon->s2_total_size;
     cl_ulong dim2 = gs;
 
     clSetKernelArg(recon->metric, 0, sizeof(cl_mem), &target->s2);
