@@ -7,10 +7,11 @@
 #define AN_MAX_DIMENSIONS 3
 
 struct an_update_data {
+    cl_ulong flat_s2_origin;
     cl_uint dimensions[AN_MAX_DIMENSIONS]; // (or the input image)
     cl_uint im_stride[AN_MAX_DIMENSIONS];
     cl_uint s2_stride[AN_MAX_DIMENSIONS];
-    cl_uint s2_origin[AN_MAX_DIMENSIONS];
+    cl_uint s2_shift[AN_MAX_DIMENSIONS];
     cl_uint index[AN_MAX_DIMENSIONS]; // index (into image) of the updated point
 };
 
@@ -338,7 +339,8 @@ an_create_image (struct an_gpu_context *ctx,
     }
 
     for (i = 0; i < ndims; i++) {
-        update->s2_origin[i] = update->dimensions[i] / 2;
+        update->s2_shift[i] = update->dimensions[i] / 2;
+        update->flat_s2_origin += update->s2_shift[i] * update->s2_stride[i];
     }
 
     if (!create_and_fill_s2_buffer (image, s2, asizes)) {
