@@ -22,16 +22,16 @@ some metric")
 (-> euclidean-distance
     ((simple-array non-negative-fixnum (*))
      (simple-array non-negative-fixnum (*)))
-    (values double-float &optional))
+    (values single-float &optional))
 (defun euclidean-distance (vector1 vector2)
   (declare (optimize (speed 3))
            (type (simple-array non-negative-fixnum (*)) vector1 vector2))
   (reduce
    #'+
-   (map-into (make-array (length vector1) :element-type 'double-float)
+   (map-into (make-array (length vector1) :element-type 'single-float)
              (lambda (x y)
                (declare (type fixnum x y))
-               (expt (float (- x y) 0d0) 2))
+               (expt (float (- x y) 0f0) 2))
              vector1 vector2)))
 
 (defmethod initialize-instance :after ((cost cost-state)
@@ -57,4 +57,4 @@ cost function in @c(annealing-step)."
      (lambda (acc diff)
        (+ acc (/ (cdr diff)
                  (cdr (assoc (car diff) initial-values)))))
-     differences :initial-value 0d0)))
+     differences :initial-value 0.0)))

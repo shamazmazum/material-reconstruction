@@ -24,13 +24,14 @@ two phases"))
 
 (defmethod random-direction ((dimensions (eql 2)))
   (declare (optimize (speed 3)))
-  (let ((ϕ (random (* 2 pi))))
+  (let ((ϕ (random (* 2 (float pi 0.0)))))
     (list (sin ϕ) (cos ϕ))))
 
 (defmethod random-direction ((dimensions (eql 3)))
   (declare (optimize (speed 3)))
-  (let ((ϕ (random (* 2 pi)))
-        (ψ (- (random pi) (/ pi 2))))
+  (let* ((π (float pi 0.0))
+         (ϕ (random (* 2 π)))
+         (ψ (- (random π) (/ π 2))))
     (list
      (sin ψ)
      (* (cos ψ) (sin ϕ))

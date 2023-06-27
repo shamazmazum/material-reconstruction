@@ -29,7 +29,7 @@ indicates if a modification was discarded."
   (declare (optimize (speed 3))
            (type image recon)
            (type corrfn target)
-           (type double-float temp)
+           (type single-float temp)
            (type function cooldown cost)
            (type modifier modifier))
 
@@ -37,10 +37,10 @@ indicates if a modification was discarded."
         (state (modify modifier recon))
         (cost2 (funcall cost target recon))
         accepted rejected)
-    (declare (type double-float cost1 cost2))
+    (declare (type single-float cost1 cost2))
     (when (> cost2 cost1)
       ;; Should we accept the change?
-      (let ((random (random 1d0))
+      (let ((random (random 1.0))
             (threshold (exp (/ (- (- cost2 cost1)) temp))))
         (when (> random threshold)
           (rollback modifier recon state)

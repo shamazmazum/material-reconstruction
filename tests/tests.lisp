@@ -54,10 +54,10 @@
       (let ((cost-state (make-instance 'cost-state
                                        :target target
                                        :recon  recon))
-            (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03d0))
+            (cooldown   (aarts-korst-cooldown :n 50 :alpha 0.03))
             (modifier   (make-modifier)))
         (muffle-output
-          (run-annealing target recon 1d-5 10000
+          (run-annealing target recon 1f-5 10000
                          :cost     (alexandria:curry #'cost cost-state)
                          :cooldown cooldown
                          :modifier modifier))
