@@ -3,6 +3,9 @@
   (:use #:cl
         #:cffi
         #:array-operations/utilities)
+  (:local-nicknames (#:si   #:stateless-iterators)
+                    (#:alex #:alexandria)
+                    (#:sera #:serapeum))
   (:import-from :alexandria
                 #:with-gensyms
                 #:non-negative-fixnum

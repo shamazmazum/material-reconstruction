@@ -5,6 +5,7 @@
   :version "0.1"
   :defsystem-depends-on (:material-reconstruction-asdf)
   :depends-on (:cffi
+               :stateless-iterators
                :select
                :array-operations
                :alexandria
@@ -21,6 +22,7 @@
                (:file "corrfns")
                (:file "image")
                (:file "initialization")
+               (:file "neighbors-histogram")
                (:file "samplers")
                (:file "cooldown")
                (:file "cost")
