@@ -4,6 +4,8 @@
   :description "Test simulated annealing")
 (def-suite s2-update
   :description "Test two-point function updates")
+(def-suite different-neighbors-update
+  :description "Test different-neighbors map updates")
 
 (defun run-tests ()
   "Run all tests and return T if all tests have passed"
@@ -12,7 +14,7 @@
                    (let ((status (run suite)))
                      (explain! status)
                      (results-status status)))
-                 '(annealing s2-update))))
+                 '(annealing s2-update different-neighbors-update))))
 
 (defun create-image-with-noise (h w)
   (let ((array (make-array (list h w) :element-type 'bit)))
@@ -86,4 +88,24 @@
   (test-s2-update 1000 2))
 
 (test s2-update-3d
+  (test-s2-update 100 3))
+
+(in-suite different-neighbors-update)
+(defun test-dn-update (size ndims)
+  (let* ((data (create-random-array size ndims))
+         (dn (material-reconstruction::different-neighbors data)))
+    (loop repeat 5000
+          for index = (loop repeat ndims collect (random size)) do
+          (setf (apply #'aref data index)
+                (- 1 (apply #'aref data index)))
+          (material-reconstruction::update-different-neighbors dn data index))
+    (is (equalp (material-reconstruction::different-neighbors data) dn))))
+
+(test dn-update-1d
+  (test-s2-update 10000 1))
+
+(test dn-update-2d
+  (test-s2-update 1000 2))
+
+(test dn-update-3d
   (test-s2-update 100 3))

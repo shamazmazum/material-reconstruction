@@ -22,6 +22,7 @@
                (:file "corrfns")
                (:file "image")
                (:file "initialization")
+               (:file "neighbors-histogram")
                (:file "samplers")
                (:file "cooldown")
                (:file "cost")
