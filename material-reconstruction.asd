@@ -16,8 +16,6 @@
                (:file "package")
                (:file "conditions")
                (:file "ffi")
-               #+nil
-               (:file "l2")
                (:file "s2")
                (:file "gpu-object")
                (:file "gpu-context")
