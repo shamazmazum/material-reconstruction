@@ -74,3 +74,22 @@ order. Also can serve as a place for @c(setf)."
     (s2-from-dft
      (%image-get (object-sap image) dimensions)
      dimensions)))
+
+(deftype update-type () '(member :pre :post))
+(defclass update-callback-mixin ()
+  ((update-callback :reader   update-callback
+                    :type     function
+                    :initarg  :callback
+                    :initform (error "Specify the callback")
+                    :documentation "A function which is called with
+two arguments: the first argument is an image object and the second is
+the update type (:PRE or :POST)."))
+  (:documentation "A mixin with a callback which will be called when a
+pixel is changed in the image. It's called twice: the first time
+before the actual change is made and the second time after the change
+is made."))
+
+(defmethod (setf image-pixel) :around (val (object update-callback-mixin) coord)
+  (funcall (update-callback object) object :pre)
+  (call-next-method)
+  (funcall (update-callback object) object :post))
