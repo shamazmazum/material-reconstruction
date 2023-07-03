@@ -16,9 +16,6 @@
   (:documentation "This sampler takes a sample on a boundary between
 two phases"))
 
-(defclass uniform-sampler (sampler) ()
-  (:documentation "Take samples uniformly over the whole image"))
-
 (defgeneric random-direction (dimensions)
   (:documentation "Generate unit vector in random direction"))
 
@@ -55,6 +52,9 @@ two phases"))
                 (return-from sample (sample sampler image)))
                ((/= (image-pixel image coord) init-val)
                 (return-from sample coord))))))
+
+(defclass uniform-sampler (sampler) ()
+  (:documentation "Take samples uniformly over the whole image"))
 
 (defmethod sample ((sampler uniform-sampler) image)
   (mapcar #'random (image-dimensions image)))
