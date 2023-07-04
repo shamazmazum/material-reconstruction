@@ -72,14 +72,18 @@ order. Also can serve as a place for @c(setf)."
                     :initarg  :callback
                     :initform (error "Specify the callback")
                     :documentation "A function which is called with
-two arguments: the first argument is an image object and the second is
-the update type (:PRE or :POST)."))
+three arguments: the first argument is an image object the second is
+an index at which update is performed and the third is the update type
+(:PRE or :POST)."))
   (:documentation "A mixin with a callback which will be called when a
 pixel is changed in the image. It's called twice: the first time
 before the actual change is made and the second time after the change
 is made."))
 
 (defmethod (setf image-pixel) :around (val (object update-callback-mixin) coord)
-  (funcall (update-callback object) object :pre)
-  (call-next-method)
-  (funcall (update-callback object) object :post))
+  (let ((updatedp (/= val (image-pixel object coord))))
+    (when updatedp
+      (funcall (update-callback object) object coord :pre))
+    (call-next-method)
+    (when updatedp
+      (funcall (update-callback object) object coord :post))))

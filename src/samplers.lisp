@@ -57,6 +57,85 @@ two phases"))
 (defmethod sample ((sampler uniform-sampler) image)
   (mapcar #'random (image-dimensions image)))
 
+(defclass dpn-sampler (sampler)
+  ((neighbors-map  :accessor dpn-sampler-neighbors-map
+                   :type     (simple-array (unsigned-byte 8)))
+   (neighbors-hist :accessor dpn-sampler-neighbors-hist
+                   :type     (simple-array fixnum (*)))
+   (α              :reader   dpn-sampler-α
+                   :type     single-float
+                   :initarg  :α
+                   :initform 1.0))
+  (:documentation "Sampler which prefers elements with higher number
+of neighbors lying in the different phase."))
+
+(-> sampling-cdf (dpn-sampler)
+    (values (simple-array single-float (*)) &optional))
+(defun sampling-cdf (sampler)
+  (declare (optimize (speed 3)))
+  (let ((α    (dpn-sampler-α sampler))
+        (hist (dpn-sampler-neighbors-hist sampler)))
+    (declare (type single-float α)
+             (type (simple-array fixnum (*)) hist))
+    (let* ((length (length hist))
+           (cdf  (make-array length :element-type 'single-float)))
+      (loop for i fixnum below length
+            for x across hist do
+            (setf (aref cdf i)
+                  (* x (expt α i))))
+      (loop for i fixnum from 1 below length do
+            (incf (aref cdf i)
+                  (aref cdf (1- i))))
+      (let ((sum (aref cdf (1- length))))
+        (map-into cdf (lambda (x) (/ x sum)) cdf)))))
+
+(defmethod sample ((sampler dpn-sampler) image)
+  (declare (optimize (speed 3)))
+  (let ((neighbors (dpn-sampler-neighbors-map sampler))
+        (dimensions (image-dimensions image)))
+    (assert (equalp dimensions (array-dimensions neighbors)))
+    (let* ((cdf    (sampling-cdf sampler))
+           (random (random 1.0))
+           (neighbors-count (position-if (lambda (x) (< random x)) cdf)))
+      (labels ((%sample ()
+                 (let* ((index (mapcar #'random dimensions))
+                        (neighbors-at-index (apply #'aref neighbors index)))
+                   (declare (type non-negative-fixnum neighbors-at-index))
+                   (if (= neighbors-count neighbors-at-index) index (%sample)))))
+        (%sample)))))
+
+(defmethod initialize-instance :after ((sampler dpn-sampler) &key array &allow-other-keys)
+  (setf (dpn-sampler-neighbors-map sampler)
+        (different-neighbors array)
+        (dpn-sampler-neighbors-hist sampler)
+        (different-neighbors-hist
+         (dpn-sampler-neighbors-map sampler))))
+
+(-> dpn-update-callback (dpn-sampler)
+    (values (-> (image list update-type)
+                (values list &optional))
+            &optional))
+(defun dpn-update-callback (sampler)
+  (declare (optimize (speed 3)))
+  (let ((histogram (dpn-sampler-neighbors-hist sampler))
+        (neighbors (dpn-sampler-neighbors-map sampler)))
+    (declare (type (simple-array fixnum (*)) histogram))
+    (lambda (image index type)
+      (case type
+        (:pre
+         ;; Update histogram
+         (do-neighbors (neighbor-index neighbors index)
+           (let ((neighbors (apply #'aref neighbors neighbor-index)))
+             (decf (aref histogram neighbors)))))
+        (:post
+         ;; Update neighbor map
+         (update-different-neighbors neighbors (image-array image) index)
+         ;; Update histogram
+         (do-neighbors (neighbor-index neighbors index)
+           (let ((neighbors (apply #'aref neighbors neighbor-index)))
+             (incf (aref histogram neighbors))))))
+      index)))
+
 (defclass flipper (modifier)
   ((sampler :reader   modifier-sampler
             :initarg  :sampler

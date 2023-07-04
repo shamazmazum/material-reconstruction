@@ -1,5 +1,32 @@
 (in-package :material-reconstruction)
 
+(declaim (inline neighbors-iterator))
+(defun neighbors-iterator (rank)
+  (si:imap #'alexandria:flatten
+           (reduce #'si:product
+                   (loop repeat rank collect (si:range -1 2)))))
+
+(declaim (inline neighbor-index))
+(defun neighbor-index (center shift dimensions)
+  (mapcar
+   (lambda (c s d)
+     (declare (type (unsigned-byte 32) c d)
+              (type (integer -1 1) s))
+     (mod (+ c s) d))
+   center shift dimensions))
+
+(defmacro do-neighbors ((index array center) &body body)
+  "Bind INDEX an index of each neighbor of the element of ARRAY at
+index CENTER and execute BODY for each neighbor."
+  (with-gensyms (array-var neighbor-area shift rank dimensions)
+    `(let* ((,array-var ,array)
+            (,rank (array-rank ,array-var))
+            (,dimensions (array-dimensions ,array-var))
+            (,neighbor-area (neighbors-iterator ,rank)))
+       (si:do-iterator (,shift ,neighbor-area)
+         (let ((,index (neighbor-index ,center ,shift ,dimensions)))
+           ,@body)))))
+
 (-> different-neighbors ((simple-array bit))
     (values (simple-array (unsigned-byte 8)) &optional))
 (defun different-neighbors (array)
@@ -14,10 +41,7 @@ ARRAY[IDX] which are not equal to ARRAY[IDX]."
                           (reduce #'si:product
                                   (loop for dim in (array-dimensions array) collect
                                         (si:range 0 dim)))))
-        (neighbor-area (si:imap #'alexandria:flatten
-                                (reduce #'si:product
-                                        (loop repeat (array-rank array) collect
-                                              (si:range -1 2))))))
+        (neighbor-area (neighbors-iterator (array-rank array))))
     (si:do-iterator (index indices)
       (let ((element (apply #'aref array index)))
         (declare (type bit element))
@@ -26,13 +50,7 @@ ARRAY[IDX] which are not equal to ARRAY[IDX]."
                         (si:imap
                          (lambda (shift)
                            (let ((neighbor
-                                  (apply #'aref array
-                                         (mapcar
-                                          (lambda (i j d)
-                                            (declare (type (unsigned-byte 32) i d)
-                                                     (type (integer -1 1) j))
-                                            (mod (+ i j) d))
-                                          index shift dimensions))))
+                                  (apply #'aref array (neighbor-index index shift dimensions))))
                              (declare (type bit neighbor))
                              (if (= element neighbor) 0 1)))
                          neighbor-area)))))
@@ -64,28 +82,20 @@ neighbors varying from 0 to 3^D-1."
   (let ((element (apply #'aref array index))
         (max-diff (1- (expt 3
                             (the (integer 1 3)
-                                 (array-rank array)))))
-        (neighbor-area (si:imap #'alexandria:flatten
-                                (reduce #'si:product
-                                        (loop repeat (array-rank array) collect
-                                              (si:range -1 2))))))
+                                 (array-rank array))))))
     ;; Update central element
     (setf (apply #'aref different-neighbors index)
           (- max-diff (the (unsigned-byte 8)
                            (apply #'aref different-neighbors index))))
 
     ;; Update neighbors
-    (si:do-iterator (shift neighbor-area)
-      (unless (every #'zerop shift)
-        (let ((neighbor-index
-               (mapcar
-                (lambda (i j d)
-                  (declare (type (unsigned-byte 32) i d)
-                           (type (integer -1 1) j))
-                  (mod (+ i j) d))
-                index shift (array-dimensions array))))
-          (incf (apply #'aref different-neighbors neighbor-index)
-                (if (= (the bit element)
-                       (the bit (apply #'aref array neighbor-index)))
-                    -1 1))))))
+    (do-neighbors (neighbor-index array index)
+      (unless (every (lambda (x y)
+                       (declare (type fixnum x y))
+                       (= x y))
+                     neighbor-index index)
+        (incf (apply #'aref different-neighbors neighbor-index)
+              (if (= (the bit element)
+                     (the bit (apply #'aref array neighbor-index)))
+                  -1 1)))))
   index)

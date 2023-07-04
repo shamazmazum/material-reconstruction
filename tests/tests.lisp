@@ -102,10 +102,37 @@
     (is (equalp (material-reconstruction::different-neighbors data) dn))))
 
 (test dn-update-1d
-  (test-s2-update 10000 1))
+  (test-dn-update 10000 1))
 
 (test dn-update-2d
-  (test-s2-update 1000 2))
+  (test-dn-update 1000 2))
 
 (test dn-update-3d
-  (test-s2-update 100 3))
+  (test-dn-update 100 3))
+
+(defclass test-image (image update-callback-mixin)
+  ())
+
+(defun test-dpn-sampler (size ndims)
+  (let* ((data (create-random-array size ndims))
+         (sampler (make-instance 'dpn-sampler :array data))
+         (image (make-instance 'test-image
+                               :array data
+                               :callback (dpn-update-callback sampler))))
+    (loop repeat 5000
+          for index = (loop repeat ndims collect (random size)) do
+          (setf (image-pixel image index)
+                (- 1 (image-pixel image index))))
+    (let ((neighbors-map (material-reconstruction::different-neighbors data)))
+      (is (equalp neighbors-map (dpn-sampler-neighbors-map sampler)))
+      (is (equalp (material-reconstruction::different-neighbors-hist neighbors-map)
+                  (dpn-sampler-neighbors-hist sampler))))))
+
+(test dpn-sampler-1d
+  (test-dpn-sampler 10000 1))
+
+(test dpn-sampler-2d
+  (test-dpn-sampler 1000 2))
+
+(test dpn-sampler-3d
+  (test-dpn-sampler 100 3))
