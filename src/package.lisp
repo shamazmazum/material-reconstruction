@@ -24,6 +24,7 @@
            #:gpu-context
 
            #:image
+           #:update-callback-mixin
            #:image-s2
            #:image-pixel
            #:image-dimensions
@@ -41,6 +42,10 @@
            #:batch-modifier
            #:interface-sampler
            #:uniform-sampler
+           #:dpn-sampler
+           #:dpn-update-callback
+           #:dpn-sampler-neighbors-map
+           #:dpn-sampler-neighbors-hist
 
            #:initialize-random
 
