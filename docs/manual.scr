@@ -31,7 +31,7 @@
    @begin(list)
       @item(A C compiler, like gcc or clang)
       @item(OpenCL)
-      @item(FFTW3 with double precision)
+      @item(FFTW3 with single precision)
    @end(list)
 @end(section)
 
@@ -133,6 +133,7 @@ image. T0 is initial temperature of the system."
    @cl:with-package[name="material-reconstruction"](
       @cl:doc(class image)
       @cl:doc(class image-s2)
+      @cl:doc(class update-callback-mixin)
       @cl:doc(function image-pixel)
       @cl:doc(function image-dimensions)
    )
@@ -152,6 +153,7 @@ image. T0 is initial temperature of the system."
       @cl:doc(class batch-modifier)
       @cl:doc(class interface-sampler)
       @cl:doc(class uniform-sampler)
+      @cl:doc(class dpn-sampler)
    )
 
    @u(Cooldown schedules)

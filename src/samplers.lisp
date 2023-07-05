@@ -60,14 +60,21 @@ two phases"))
   (mapcar #'random (image-dimensions image)))
 
 (defclass dpn-sampler (sampler)
-  ((neighbors-map  :accessor dpn-sampler-neighbors-map
-                   :type     (simple-array (unsigned-byte 8)))
-   (neighbors-hist :accessor dpn-sampler-neighbors-hist
-                   :type     (simple-array fixnum (*)))
-   (α              :reader   dpn-sampler-α
-                   :type     single-float
-                   :initarg  :α
-                   :initform 1.0))
+  ((neighbors-map  :accessor      dpn-sampler-neighbors-map
+                   :type          (simple-array (unsigned-byte 8))
+                   :documentation "Contains a map of numbers of pixels
+lying in the different phase.")
+   (neighbors-hist :accessor      dpn-sampler-neighbors-hist
+                   :type          (simple-array fixnum (*))
+                   :documentation "@c(neighbors-map) binned to a histogram")
+   (α              :reader        dpn-sampler-α
+                   :type          single-float
+                   :initarg       :α
+                   :initform      1.0
+                   :documentation "A parameter ≥ 1. Higher values of
+this parameter results in higher probabilty of choosing pixels with a
+big value of neighbors which lie in the different phase. Good values
+are 1.4 for 3D images and 2.4 for 2D images."))
   (:documentation "Sampler which prefers elements with higher number
 of neighbors lying in the different phase."))
 
@@ -118,6 +125,9 @@ of neighbors lying in the different phase."))
                 (values list &optional))
             &optional))
 (defun dpn-update-callback (sampler)
+  "Returns a callback which must be passed as @c(:callback) argument
+when creating an image. The class of the image must be a subclass of
+@c(update-callback-mixin)."
   (declare (optimize (speed 3)))
   (let ((histogram (dpn-sampler-neighbors-hist sampler))
         (neighbors (dpn-sampler-neighbors-map sampler)))
