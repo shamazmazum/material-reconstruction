@@ -100,13 +100,13 @@
 (in-suite different-neighbors-update)
 (defun test-dn-update (size ndims)
   (let* ((data (create-random-array size ndims))
-         (dn (material-reconstruction::different-neighbors data)))
+         (dn (neighbors-map data)))
     (loop repeat 5000
           for index = (loop repeat ndims collect (random size)) do
           (setf (apply #'aref data index)
                 (- 1 (apply #'aref data index)))
-          (material-reconstruction::update-different-neighbors dn data index))
-    (is (equalp (material-reconstruction::different-neighbors data) dn))))
+          (material-reconstruction::update-neighbors-map dn data index))
+    (is (equalp (neighbors-map data) dn))))
 
 (test dn-update-1d
   (test-dn-update 10000 1))
@@ -130,9 +130,9 @@
           for index = (loop repeat ndims collect (random size)) do
           (setf (image-pixel image index)
                 (- 1 (image-pixel image index))))
-    (let ((neighbors-map (material-reconstruction::different-neighbors data)))
+    (let ((neighbors-map (neighbors-map data)))
       (is (equalp neighbors-map (dpn-sampler-neighbors-map sampler)))
-      (is (equalp (material-reconstruction::different-neighbors-hist neighbors-map)
+      (is (equalp (neighbors-hist neighbors-map)
                   (dpn-sampler-neighbors-hist sampler))))))
 
 (test dpn-sampler-1d

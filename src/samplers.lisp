@@ -108,9 +108,9 @@ of neighbors lying in the different phase."))
 
 (defmethod initialize-instance :after ((sampler dpn-sampler) &key array &allow-other-keys)
   (setf (dpn-sampler-neighbors-map sampler)
-        (different-neighbors array)
+        (neighbors-map array)
         (dpn-sampler-neighbors-hist sampler)
-        (different-neighbors-hist
+        (neighbors-hist
          (dpn-sampler-neighbors-map sampler))))
 
 (-> dpn-update-callback (dpn-sampler)
@@ -131,7 +131,7 @@ of neighbors lying in the different phase."))
              (decf (aref histogram neighbors)))))
         (:post
          ;; Update neighbor map
-         (update-different-neighbors neighbors (image-array image) index)
+         (update-neighbors-map neighbors (image-array image) index)
          ;; Update histogram
          (do-neighbors (neighbor-index neighbors index)
            (let ((neighbors (apply #'aref neighbors neighbor-index)))

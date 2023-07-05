@@ -46,6 +46,8 @@
            #:dpn-update-callback
            #:dpn-sampler-neighbors-map
            #:dpn-sampler-neighbors-hist
+           #:neighbors-map
+           #:neighbors-hist
 
            #:initialize-random
 
