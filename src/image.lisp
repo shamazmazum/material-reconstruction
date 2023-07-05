@@ -74,11 +74,12 @@ order. Also can serve as a place for @c(setf)."
                     :documentation "A function which is called with
 three arguments: the first argument is an image object the second is
 an index at which update is performed and the third is the update type
-(:PRE or :POST)."))
+(@c(:pre) or @c(:post))."))
   (:documentation "A mixin with a callback which will be called when a
 pixel is changed in the image. It's called twice: the first time
 before the actual change is made and the second time after the change
-is made."))
+is made. For example, image classes whose instances are used with
+@c(dpn-sampler) must be subclasses of @c(update-callback-mixin)."))
 
 (defmethod (setf image-pixel) :around (val (object update-callback-mixin) coord)
   (let ((updatedp (/= val (image-pixel object coord))))
