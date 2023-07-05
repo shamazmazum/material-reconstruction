@@ -27,12 +27,12 @@ index CENTER and execute BODY for each neighbor."
          (let ((,index (neighbor-index ,center ,shift ,dimensions)))
            ,@body)))))
 
-(-> different-neighbors ((simple-array bit))
+(-> neighbors-map ((simple-array bit))
     (values (simple-array (unsigned-byte 8)) &optional))
-(defun different-neighbors (array)
-  "Return an array which has the same shape as ARRAY. An element of
-the returned array with index IDX contains a number of neighbors of
-ARRAY[IDX] which are not equal to ARRAY[IDX]."
+(defun neighbors-map (array)
+  "Return an array which has the same shape as @c(array). An element of
+the returned array with index @c(idx) contains a number of neighbors of
+@c(array[idx]) which are not equal to @c(array[idx])."
   (declare (optimize (speed 3)))
   (let ((neighbor-map (make-array (array-dimensions array)
                                   :element-type '(unsigned-byte 8)))
@@ -56,9 +56,9 @@ ARRAY[IDX] which are not equal to ARRAY[IDX]."
                          neighbor-area)))))
     neighbor-map))
 
-(-> different-neighbors-hist ((simple-array (unsigned-byte 8)))
+(-> neighbors-hist ((simple-array (unsigned-byte 8)))
     (values (simple-array fixnum (*)) &optional))
-(defun different-neighbors-hist (different-neighbors)
+(defun neighbors-hist (different-neighbors)
   "Count the amount of pixels with a number of different phase
 neighbors varying from 0 to 3^D-1."
   (declare (optimize (speed 3)))
@@ -70,11 +70,11 @@ neighbors varying from 0 to 3^D-1."
          (aops:flatten different-neighbors))
     histogram))
 
-(-> update-different-neighbors ((simple-array (unsigned-byte 8))
-                                (simple-array bit)
-                                list)
+(-> update-neighbors-map ((simple-array (unsigned-byte 8))
+                          (simple-array bit)
+                          list)
     (values list &optional))
-(defun update-different-neighbors (different-neighbors array index)
+(defun update-neighbors-map (different-neighbors array index)
   "Update DIFFERENT-NEIGHBORS map after ARRAY[INDEX] was flipped"
   (declare (optimize (speed 3)))
   (assert (equalp (array-dimensions different-neighbors)
