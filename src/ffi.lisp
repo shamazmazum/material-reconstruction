@@ -48,11 +48,11 @@
   (let* ((dimensions (array-dimensions array))
          (rfft-dimensions (rfft-array-dimensions dimensions))
          (real-array (make-array (reduce #'* rfft-dimensions)
-                                 :element-type 'double-float))
+                                 :element-type 'single-float))
          (imag-array (make-array (reduce #'* rfft-dimensions)
-                                 :element-type 'double-float))
+                                 :element-type 'single-float))
          (result (make-array rfft-dimensions
-                             :element-type '(complex double-float)))
+                             :element-type '(complex single-float)))
          (buffer (array->ub8-vector array))
          (dimensions-array (list->ub32-vector dimensions)))
     (with-pointer-to-vector-data (buffer-ptr buffer)
@@ -92,7 +92,7 @@
   (ndims      :uint))
 
 (defun %create-image (ctx fft-array dimensions)
-  (declare (type (simple-array (complex double-float)) fft-array)
+  (declare (type (simple-array (complex single-float)) fft-array)
            (type list dimensions))
   (when (not (equalp (array-dimensions fft-array)
                      (rfft-array-dimensions dimensions)))
@@ -100,11 +100,11 @@
            :format-control "Dimensions are not compatible"))
   (let ((real (map-into
                (make-array (reduce #'* (array-dimensions fft-array))
-                           :element-type 'double-float)
+                           :element-type 'single-float)
                #'realpart (aops:flatten fft-array)))
         (imag (map-into
                (make-array (reduce #'* (array-dimensions fft-array))
-                           :element-type 'double-float)
+                           :element-type 'single-float)
                #'imagpart (aops:flatten fft-array)))
         ;; XXX: Not "shareable array", but OK for SBCL
         (dimensions (list->ub32-vector dimensions)))
@@ -125,7 +125,7 @@
   (ndims      :uint))
 
 (defun %create-corrfn (ctx corrfn-array dimensions)
-  (declare (type (simple-array double-float) corrfn-array)
+  (declare (type (simple-array single-float) corrfn-array)
            (type list dimensions))
   (when (not (equalp (array-dimensions corrfn-array)
                      (rfft-array-dimensions dimensions)))
@@ -133,7 +133,7 @@
            :format-control "Dimensions are not compatible"))
   (let ((corrfn-array (map-into
                        (make-array (reduce #'* (array-dimensions corrfn-array))
-                                   :element-type 'double-float)
+                                   :element-type 'single-float)
                        #'identity (aops:flatten corrfn-array)))
         (dimensions (list->ub32-vector dimensions)))
     (with-pointer-to-vector-data (corrfn-ptr corrfn-array)
@@ -167,8 +167,8 @@
   (distance :pointer))
 
 (defun %distance (target-sap recon-sap)
-  (with-foreign-object (distance-ptr :double)
+  (with-foreign-object (distance-ptr :float)
     (when (zerop (%%distance target-sap recon-sap distance-ptr))
       (error 'recon-error
              :format-control "Cannot calculate distance between images"))
-    (mem-ref distance-ptr :double)))
+    (mem-ref distance-ptr :float)))

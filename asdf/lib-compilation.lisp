@@ -30,4 +30,4 @@
              "-o"
              (nn lib-name)
              (nn source-name)
-             "-lm" "-lOpenCL" "-lfftw3")))))
+             "-lm" "-lOpenCL" "-lfftw3f")))))

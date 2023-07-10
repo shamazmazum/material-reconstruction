@@ -65,17 +65,17 @@ an_get_array_sizes (const cl_uint *dimensions,
 }
 
 /* Fourier transform */
-int an_rfft (const cl_uchar        *array,
-             cl_double             *real,
-             cl_double             *imag,
-             const cl_uint         *dimensions,
-             unsigned int           ndims) {
+int an_rfft (const cl_uchar *array,
+             cl_float       *real,
+             cl_float       *imag,
+             const cl_uint  *dimensions,
+             unsigned int    ndims) {
     // Input and output arrays
-    cl_double    *in;
-    fftw_complex *out;
+    cl_float      *in;
+    fftwf_complex *out;
 
     // FFT plan
-    fftw_plan p;
+    fftwf_plan p;
 
     // Dimensions
     size_t i;
@@ -84,9 +84,9 @@ int an_rfft (const cl_uchar        *array,
     // Success
     int ok = 1;
 
-    in  = fftw_malloc(sizeof(double)       * asizes.real);
-    out = fftw_malloc(sizeof(fftw_complex) * asizes.complex);
-    p   = fftw_plan_dft_r2c (ndims, (const int*)dimensions, in, out, FFTW_ESTIMATE);
+    in  = fftwf_malloc(sizeof(float)         * asizes.real);
+    out = fftwf_malloc(sizeof(fftwf_complex) * asizes.complex);
+    p   = fftwf_plan_dft_r2c (ndims, (const int*)dimensions, in, out, FFTW_ESTIMATE);
 
     if (p == NULL) {
         ok = 0;
@@ -98,7 +98,7 @@ int an_rfft (const cl_uchar        *array,
         in[i] = array[i];
     }
 
-    fftw_execute(p);
+    fftwf_execute(p);
 
     for (i=0; i < asizes.complex; i++) {
         real[i] = out[i][0];
@@ -107,11 +107,11 @@ int an_rfft (const cl_uchar        *array,
 
 cleanup:
     if (p != NULL) {
-        fftw_destroy_plan (p);
+        fftwf_destroy_plan (p);
     }
 
-    fftw_free (in);
-    fftw_free (out);
+    fftwf_free (in);
+    fftwf_free (out);
 
     return ok;
 }
@@ -242,8 +242,8 @@ void an_destroy_image (struct an_image *image) {
 
 struct an_image*
 an_create_image (struct an_gpu_context *ctx,
-                 const cl_double       *real,
-                 const cl_double       *imag,
+                 const cl_float        *real,
+                 const cl_float        *imag,
                  const cl_uint         *dimensions,
                  unsigned int           ndims) {
     if (ndims > AN_MAX_DIMENSIONS) {
@@ -261,17 +261,17 @@ an_create_image (struct an_gpu_context *ctx,
     image->type  = AN_IMAGE_TYPE_IMAGE;
 
     image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                       asizes.complex * sizeof(cl_double2), NULL, NULL);
+                                       asizes.complex * sizeof(cl_float2), NULL, NULL);
     if (image->gpu_image == NULL) {
-        fprintf (stderr, "Cannot allocate GPU buffer (%lu complex doubles)\n",
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu complex floats)\n",
                  asizes.complex);
         goto bad;
     }
 
     // Copy to GPU
-    cl_double2 *image_buf = clEnqueueMapBuffer (image->ctx->queue, image->gpu_image, CL_TRUE,
-                                                CL_MAP_WRITE, 0, asizes.complex * sizeof(cl_double2),
-                                                0, NULL, NULL, NULL);
+    cl_float2 *image_buf = clEnqueueMapBuffer (image->ctx->queue, image->gpu_image, CL_TRUE,
+                                               CL_MAP_WRITE, 0, asizes.complex * sizeof(cl_float2),
+                                               0, NULL, NULL, NULL);
     if (image_buf == NULL) {
         goto bad;
     }
@@ -293,7 +293,7 @@ bad:
 
 struct an_image*
 an_create_corrfn (struct an_gpu_context *ctx,
-                  const cl_double       *corrfn,
+                  const cl_float        *corrfn,
                   const cl_uint         *dimensions,
                   unsigned int           ndims) {
     if (ndims > AN_MAX_DIMENSIONS) {
@@ -311,24 +311,24 @@ an_create_corrfn (struct an_gpu_context *ctx,
     image->type  = AN_IMAGE_TYPE_CORRFN;
 
     image->gpu_image = clCreateBuffer (ctx->context, CL_MEM_READ_ONLY,
-                                       asizes.complex * sizeof(cl_double), NULL, NULL);
+                                       asizes.complex * sizeof(cl_float), NULL, NULL);
     if (image->gpu_image == NULL) {
-        fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu floats)\n",
                  asizes.complex);
         goto bad;
     }
 
     image->dist_tmp = clCreateBuffer (ctx->context, CL_MEM_READ_WRITE,
-                                      asizes.complex * sizeof(cl_double), NULL, NULL);
+                                      asizes.complex * sizeof(cl_float), NULL, NULL);
     if (image->dist_tmp == NULL) {
-        fprintf (stderr, "Cannot allocate GPU buffer (%lu doubles)\n",
+        fprintf (stderr, "Cannot allocate GPU buffer (%lu floats)\n",
                  asizes.complex);
         goto bad;
     }
 
     // Copy to GPU
     if (clEnqueueWriteBuffer (ctx->queue, image->gpu_image, CL_TRUE,
-                              0, asizes.complex * sizeof(cl_double),
+                              0, asizes.complex * sizeof(cl_float),
                               corrfn, 0, NULL, NULL) != CL_SUCCESS) {
         fprintf (stderr, "Cannot copy data to GPU\n");
         goto bad;
@@ -376,10 +376,10 @@ void an_image_update_fft (struct an_image *image,
     }
 
     struct an_gpu_context *ctx = image->ctx;
-    cl_double d = delta;
+    cl_float d = delta;
     clSetKernelArg (ctx->sparse_ft, 0, sizeof(cl_mem),                &image->gpu_image);
     clSetKernelArg (ctx->sparse_ft, 1, sizeof(struct an_update_data), &upd);
-    clSetKernelArg (ctx->sparse_ft, 2, sizeof(cl_double),             &d);
+    clSetKernelArg (ctx->sparse_ft, 2, sizeof(cl_float),              &d);
 
     clEnqueueNDRangeKernel (ctx->queue, ctx->sparse_ft,
                             image->ndims, NULL, dim, NULL, 0, NULL, NULL);
@@ -388,7 +388,7 @@ void an_image_update_fft (struct an_image *image,
 int
 an_distance (struct an_image *target,
              struct an_image *recon,
-             cl_double       *distance) {
+             cl_float        *distance) {
     if (target->ctx   != recon->ctx                   ||
         target->ndims != recon->ndims                 ||
         memcmp (target->dimensions,
@@ -415,21 +415,21 @@ an_distance (struct an_image *target,
                             1, NULL, &dim1, NULL, 0, NULL, NULL);
 
     clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &target->dist_tmp);
-    clSetKernelArg (ctx->reduce, 1, sizeof(cl_double) * gs, NULL);
+    clSetKernelArg (ctx->reduce, 1, sizeof(cl_float) * gs, NULL);
     clSetKernelArg (ctx->reduce, 2, sizeof(cl_ulong), &dim1);
     clEnqueueNDRangeKernel (ctx->queue, ctx->reduce, 1, NULL,
                             &gssq, &gs, 0, NULL, NULL);
 
 #if 0
     clSetKernelArg (ctx->reduce, 0, sizeof(cl_mem), &target->dist_tmp);
-    clSetKernelArg (ctx->reduce, 1, sizeof(cl_double) * gs, NULL);
+    clSetKernelArg (ctx->reduce, 1, sizeof(cl_float) * gs, NULL);
 #endif
     clSetKernelArg (ctx->reduce, 2, sizeof(cl_ulong), &dim2);
     clEnqueueNDRangeKernel (ctx->queue, ctx->reduce, 1, NULL,
                             &gs, &gs, 0, NULL, NULL);
 
     clEnqueueReadBuffer (ctx->queue, target->dist_tmp,
-                         CL_TRUE, 0, sizeof (cl_double), distance, 0,
+                         CL_TRUE, 0, sizeof (cl_float), distance, 0,
                          NULL, NULL);
 
     return 1;
