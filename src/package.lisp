@@ -12,7 +12,6 @@
            #:recon-warning
 
            ;; Correlation functions
-           #:l2
            #:s2
 
            #:destroy-gpu-object
@@ -23,14 +22,12 @@
 
            #:image
            #:image-s2
-           #:image-l2
            #:image-pixel
            #:image-dimensions
            #:image-array
 
            #:corrfn
            #:corrfn-s2
-           #:corrfn-l2
 
            #:modifier
            #:sampler

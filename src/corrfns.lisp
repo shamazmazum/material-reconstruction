@@ -13,15 +13,6 @@ hold OpenCL context. The context must remain alive while a created
 image lives. @c(:s2) keyword must hold S₂ correlation function and
 @c(:dimensions) are dimensions of the original image."))
 
-(defclass corrfn-l2 (corrfn)
-  ((l2-void  :initarg  :l2-void
-             :accessor l2-void
-             :type     list)
-   (l2-solid :initarg  :l2-solid
-             :accessor l2-solid
-             :type     list))
-  (:documentation "Lineal-path correlation function for solid and void phases."))
-
 (defmethod initialize-instance :after ((corrfn-s2 corrfn-s2)
                                        &key context array s2 dimensions
                                        &allow-other-keys)
@@ -31,13 +22,6 @@ image lives. @c(:s2) keyword must hold S₂ correlation function and
           (%create-corrfn
            (object-sap context)
            s2 dimensions))))
-
-(defmethod initialize-instance :after ((corrfn-l2 corrfn-l2)
-                                       &key array &allow-other-keys)
-  (setf (l2-solid corrfn-l2)
-        (l2 array 1)
-        (l2-void  corrfn-l2)
-        (l2 array 0)))
 
 (defmethod destroy-gpu-object ((corrfn-s2 corrfn-s2))
   ;; These objects are an_image on C side

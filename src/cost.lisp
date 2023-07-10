@@ -16,8 +16,10 @@ some metric")
 (defmethod image-distance list ((cost cost-state)
                                 (target corrfn-s2)
                                 (recon  image-s2))
-  (cons :s2 (%distance (object-sap target)
-                       (object-sap recon))))
+  (cons :s2
+        (sqrt
+         (%distance (object-sap target)
+                    (object-sap recon)))))
 
 (-> euclidean-distance
     ((simple-array non-negative-fixnum (*))
@@ -33,19 +35,6 @@ some metric")
                (declare (type fixnum x y))
                (expt (float (- x y) 0d0) 2))
              vector1 vector2)))
-
-(defmethod image-distance list ((cost cost-state)
-                                (target corrfn-l2)
-                                (recon  image-l2))
-  (let ((recon-l2 (image-l2 recon)))
-    (cons :l2
-          (+
-           (reduce #'+ (mapcar #'euclidean-distance
-                               (l2-void target)
-                               (l2-void recon-l2)))
-           (reduce #'+ (mapcar #'euclidean-distance
-                               (l2-solid target)
-                               (l2-solid recon-l2)))))))
 
 (defmethod initialize-instance :after ((cost cost-state)
                                        &key target recon &allow-other-keys)

@@ -12,9 +12,6 @@
   :pathname "src/"
   :components ((c-library "anneal-ocl")
                (:file "package")
-               (:file "slices")
-               (:file "iterators")
-               (:file "l2")
                (:file "conditions")
                (:file "ffi")
                (:file "s2")
