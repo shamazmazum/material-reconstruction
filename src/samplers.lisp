@@ -22,15 +22,18 @@ two phases"))
 (defgeneric random-direction (dimensions)
   (:documentation "Generate unit vector in random direction"))
 
+(declaim (type single-float +pi+))
+(defconstant +pi+ (float pi 0.0))
+
 (defmethod random-direction ((dimensions (eql 2)))
   (declare (optimize (speed 3)))
-  (let ((ϕ (random (* 2 pi))))
+  (let ((ϕ (random (* 2 +pi+))))
     (list (sin ϕ) (cos ϕ))))
 
 (defmethod random-direction ((dimensions (eql 3)))
   (declare (optimize (speed 3)))
-  (let ((ϕ (random (* 2 pi)))
-        (ψ (- (random pi) (/ pi 2))))
+  (let ((ϕ (random (* 2 +pi+)))
+        (ψ (- (random +pi+) (/ +pi+ 2))))
     (list
      (sin ψ)
      (* (cos ψ) (sin ϕ))

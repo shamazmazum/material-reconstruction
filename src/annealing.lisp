@@ -1,5 +1,10 @@
 (in-package :material-reconstruction)
 
+(-> annealing-step (corrfn image single-float &key
+                           (:cost     function)
+                           (:cooldown function)
+                           (:modifier modifier))
+    (values single-float single-float boolean boolean &optional))
 (defun annealing-step (target recon temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
 the image @c(recon) minimising @c(cost). @c(cost) is a function
@@ -27,17 +32,12 @@ indicates that a modification to the system has resulted in an
 increase of the cost function and another boolean value which
 indicates if a modification was discarded."
   (declare (optimize (speed 3))
-           (type image recon)
-           (type corrfn target)
-           (type double-float temp)
-           (type function cooldown cost)
-           (type modifier modifier))
-
+           (type function cost cooldown))
   (let ((cost1 (funcall cost target recon))
         (state (modify modifier recon))
         (cost2 (funcall cost target recon))
         accepted rejected)
-    (declare (type double-float cost1 cost2))
+    (declare (type single-float cost1 cost2))
     (when (> cost2 cost1)
       ;; Should we accept the change?
       (let ((random (random 1d0))
@@ -52,6 +52,11 @@ indicates if a modification was discarded."
      (if rejected cost1 cost2)
      accepted rejected)))
 
+(-> run-annealing (corrfn image single-float positive-fixnum &key
+                          (:cost     function)
+                          (:cooldown function)
+                          (:modifier modifier))
+    (values list &optional))
 (defun run-annealing (target recon t0 n &key cost modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)
 steps. See also @c(annealing-step)."
