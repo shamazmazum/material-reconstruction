@@ -13,6 +13,7 @@
 
            ;; Correlation functions
            #:s2
+           #:s2-dft
 
            #:destroy-gpu-object
            #:with-gpu-object

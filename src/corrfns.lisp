@@ -16,7 +16,7 @@ image lives. @c(:s2) keyword must hold S₂ correlation function and
 (defmethod initialize-instance :after ((corrfn-s2 corrfn-s2)
                                        &key context array s2 dimensions
                                        &allow-other-keys)
-  (let ((s2         (if array (s2 array) s2))
+  (let ((s2         (if array (s2-dft array) s2))
         (dimensions (if array (array-dimensions array) dimensions)))
     (setf (object-sap corrfn-s2)
           (%create-corrfn
