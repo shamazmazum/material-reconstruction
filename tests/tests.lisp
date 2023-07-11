@@ -64,23 +64,33 @@
         (is (< (cost cost-state target recon) 0.9))))))
 
 (in-suite s2-update)
-(defun test-s2-update (size ndims)
+(defun test-s2-update (size ndims periodic)
   (let ((data (create-random-array size ndims)))
     (with-gpu-objects ((ctx gpu-context)
                        (image image-s2
-                              :array   data
-                              :context ctx))
+                              :periodic-p periodic
+                              :array      data
+                              :context    ctx))
       (loop repeat 5000
             for index = (loop repeat ndims collect (random size)) do
             (setf (image-pixel image index)
                   (- 1 (image-pixel image index))))
-      (is (equalp (s2 data) (image-gpu-s2 image))))))
+      (is (equalp (s2 data :periodic-p periodic) (image-gpu-s2 image))))))
 
-(test s2-update-1d
-  (test-s2-update 10000 1))
+(test s2-update-1d-periodic
+  (test-s2-update 10000 1 t))
 
-(test s2-update-2d
-  (test-s2-update 1000 2))
+(test s2-update-2d-periodic
+  (test-s2-update 1000 2 t))
 
-(test s2-update-3d
-  (test-s2-update 100 3))
+(test s2-update-3d-periodic
+  (test-s2-update 100 3 t))
+
+(test s2-update-1d-non-periodic
+  (test-s2-update 10000 1 nil))
+
+(test s2-update-2d-non-periodic
+  (test-s2-update 500 2 nil))
+
+(test s2-update-3d-non-periodic
+  (test-s2-update 50 3 nil))

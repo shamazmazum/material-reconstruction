@@ -47,10 +47,10 @@ resulting autocorrelation is in space domain and not normalized."
     (setf (apply #'select:select result ranges) array)
     result))
 
-(-> s2 ((simple-array bit) &key (:periodic boolean))
+(-> s2 ((simple-array bit) &key (:periodic-p boolean))
     (values (simple-array fixnum) &optional))
-(defun s2 (array &key (periodic t))
+(defun s2 (array &key (periodic-p t))
   "Calculate two-point correlation function (autocorrelation) for the
 solid phase of the bit-array @c(array). The result is not normalized."
-  (let ((array (if periodic array (pad-with-zeros array))))
+  (let ((array (if periodic-p array (pad-with-zeros array))))
     (s2-from-dft (rfft array) (array-dimensions array))))

@@ -8,7 +8,11 @@
   (:documentation "Basic class for two-phase images"))
 
 (defclass image-s2 (image gpu-object)
-  ()
+  ((periodic-p :initarg  :periodic-p
+               :initform t
+               :type     boolean
+               :accessor image-s2-periodic-p
+               :documentation "If autocorrelation is periodic or not"))
   (:documentation "Class for images with associated two-point
 function. @c(context) keyword argument must hold OpenCL context. The
 context must remain alive while a created image lives."))
@@ -18,7 +22,10 @@ context must remain alive while a created image lives."))
 @c(coord) in row-major order to @c(val)."))
 
 (defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
-  (let ((array (image-array image)))
+  (let ((array (funcall
+                (if (image-s2-periodic-p image)
+                    #'identity #'pad-with-zeros)
+                (image-array image))))
     (setf (object-sap image)
           (%create-image
            (object-sap context)
@@ -60,7 +67,10 @@ order. Also can serve as a place for @c(setf)."
 (-> image-gpu-s2 (image)
     (values (simple-array fixnum) &optional))
 (defun image-gpu-s2 (image)
-  (let ((dimensions (image-dimensions image)))
+  (let ((dimensions (funcall
+                     (if (image-s2-periodic-p image)
+                         #'identity #'dimensions-with-padding)
+                     (image-dimensions image))))
     (s2-from-dft
      (%image-get (object-sap image) dimensions)
      dimensions)))
