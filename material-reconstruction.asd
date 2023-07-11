@@ -10,7 +10,7 @@
                :serapeum)
   :serial t
   :pathname "src/"
-  :components ((c-library "anneal-ocl")
+  :components ((c-library "low-level")
                (:file "package")
                (:file "conditions")
                (:file "ffi")

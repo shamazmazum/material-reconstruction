@@ -25,9 +25,9 @@
 
 (define-foreign-library libanneal-ocl
   (:unix (:or #.(asdf:system-relative-pathname '#:material-reconstruction
-                                               "src/libanneal-ocl.so")
-              "libanneal-ocl.so"))
-  (t (:default "libanneal-ocl")))
+                                               "src/liblow-level.so")
+              "liblow-level.so"))
+  (t (:default "low-level")))
 
 (use-foreign-library libanneal-ocl)
 

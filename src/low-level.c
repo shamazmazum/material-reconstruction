@@ -2,10 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-
 #include <fftw3.h>
-
-#include "anneal-ocl.h"
+#include "low-level.h"
 
 #define AN_MAX_DIMENSIONS 3
 
