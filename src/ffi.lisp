@@ -16,13 +16,6 @@
   (map '(vector (unsigned-byte 32))
        #'identity list))
 
-(defun array->ub8-vector (array)
-  (map-into
-   (make-shareable-byte-vector
-    (array-total-size array))
-   #'identity
-   (aops:flatten array)))
-
 (define-foreign-library libanneal-ocl
   (:unix (:or #.(asdf:system-relative-pathname '#:material-reconstruction
                                                "src/liblow-level.so")
@@ -43,8 +36,7 @@
   (ndims      :int))
 
 (defun rfft (array)
-  "Perform FFT on an array of bits. Array may be of any sizes and dimensions."
-  (declare (type (simple-array bit) array))
+  "Perform RFFT on an array. Array may be of any sizes and dimensions."
   (let* ((dimensions (array-dimensions array))
          (rfft-dimensions (rfft-array-dimensions dimensions))
          (real-array (make-array (reduce #'* rfft-dimensions)
@@ -53,7 +45,7 @@
                                  :element-type 'single-float))
          (result (make-array rfft-dimensions
                              :element-type '(complex single-float)))
-         (buffer (array->ub8-vector array))
+         (buffer (map '(vector single-float) #'float (aops:flatten array)))
          (dimensions-array (list->ub32-vector dimensions)))
     (with-pointer-to-vector-data (buffer-ptr buffer)
       (with-pointer-to-vector-data (real-ptr real-array)
@@ -67,6 +59,40 @@
               (lambda (r im)
                 (complex r im))
               real-array imag-array)
+    result))
+
+(defcfun ("an_irfft" %irfft) :int
+  (array      :pointer)
+  (real       :pointer)
+  (imag       :pointer)
+  (dimensions :pointer)
+  (ndims      :int))
+
+(defun irfft (array dimensions)
+  "Perform IRFFT on an array of complex single-precision values."
+  (unless (every #'=
+                 (array-dimensions array)
+                 (rfft-array-dimensions dimensions))
+    (error 'recon-error
+           :format-control "Array dimensions of the FFT and IFFT do not match: ~a vs ~a"
+           :format-arguments (list (array-dimensions array) dimensions)))
+  (let ((real-buffer   (make-array (array-total-size array) :element-type 'single-float))
+        (imag-buffer   (make-array (array-total-size array) :element-type 'single-float))
+        (result-buffer (make-array (reduce #'* dimensions)  :element-type 'single-float))
+        (result        (make-array dimensions :element-type 'single-float))
+        (dimensions-array (list->ub32-vector dimensions)))
+    ;; Fill input
+    (map-into real-buffer #'realpart (aops:flatten array))
+    (map-into imag-buffer #'imagpart (aops:flatten array))
+    (with-pointer-to-vector-data (real-ptr real-buffer)
+      (with-pointer-to-vector-data (imag-ptr imag-buffer)
+        (with-pointer-to-vector-data (result-ptr result-buffer)
+          (with-pointer-to-vector-data (dimensions-ptr dimensions-array)
+            (when (zerop (%irfft result-ptr real-ptr imag-ptr dimensions-ptr
+                                (length dimensions)))
+              (error 'recon-error
+                     :format-control "Cannot perform RFFT"))))))
+    (map-into (aops:flatten result) #'identity result-buffer)
     result))
 
 ;; GPU context

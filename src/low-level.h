@@ -6,11 +6,17 @@ struct an_gpu_context;
 struct an_image;
 
 /* Fourier transform */
-int an_rfft (const cl_uchar *array,
+int an_rfft (const cl_float *array,
              cl_float       *real,
              cl_float       *imag,
              const cl_uint  *dimensions,
              unsigned int    ndims);
+
+int an_irfft (cl_float       *array,
+              const cl_float *real,
+              const cl_float *imag,
+              const cl_uint  *dimensions,
+              unsigned int    ndims);
 
 /* GPU context */
 struct an_gpu_context*

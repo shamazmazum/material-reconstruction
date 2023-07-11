@@ -63,7 +63,7 @@ an_get_array_sizes (const cl_uint *dimensions,
 }
 
 /* Fourier transform */
-int an_rfft (const cl_uchar *array,
+int an_rfft (const cl_float *array,
              cl_float       *real,
              cl_float       *imag,
              const cl_uint  *dimensions,
@@ -92,16 +92,60 @@ int an_rfft (const cl_uchar *array,
     }
 
     // Copy data to the input array and calculate FFT
-    for (i=0; i < asizes.real; i++) {
-        in[i] = array[i];
-    }
-
+    memcpy (in, array, sizeof(float)*asizes.real);
     fftwf_execute(p);
 
     for (i=0; i < asizes.complex; i++) {
         real[i] = out[i][0];
         imag[i] = out[i][1];
     }
+
+cleanup:
+    if (p != NULL) {
+        fftwf_destroy_plan (p);
+    }
+
+    fftwf_free (in);
+    fftwf_free (out);
+
+    return ok;
+}
+
+int an_irfft (cl_float       *array,
+              const cl_float *real,
+              const cl_float *imag,
+              const cl_uint  *dimensions,
+              unsigned int    ndims) {
+    // Input and output arrays
+    fftwf_complex *in;
+    cl_float      *out;
+
+    // FFT plan
+    fftwf_plan p;
+
+    // Dimensions
+    size_t i;
+    struct an_array_sizes asizes = an_get_array_sizes (dimensions, ndims);
+
+    // Success
+    int ok = 1;
+
+    in  = fftwf_malloc(sizeof(fftwf_complex) * asizes.complex);
+    out = fftwf_malloc(sizeof(cl_float)      * asizes.real);
+    p   = fftwf_plan_dft_c2r (ndims, (const int*)dimensions, in, out, FFTW_ESTIMATE);
+
+    if (p == NULL) {
+        ok = 0;
+        goto cleanup;
+    }
+
+    for (i=0; i < asizes.complex; i++) {
+        in[i][0] = real[i];
+        in[i][1] = imag[i];
+    }
+
+    fftwf_execute(p);
+    memcpy (array, out, sizeof(float)*asizes.real);
 
 cleanup:
     if (p != NULL) {
