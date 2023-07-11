@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install mesa-opencl-icd ocl-icd-opencl-dev libfftw3-dev libfftw3-double3
+          sudo apt-get install mesa-opencl-icd ocl-icd-opencl-dev libfftw3-dev libfftw3-3
       - name: Install roswell
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
