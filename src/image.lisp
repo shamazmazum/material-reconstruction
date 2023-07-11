@@ -41,8 +41,12 @@ context must remain alive while a created image lives."))
 (-> image-dimensions (image) (values list &optional))
 (defun image-dimensions (image)
   "Get image dimensions."
-  (declare (type image image))
   (array-dimensions (image-array image)))
+
+(-> image-total-size (image) (values positive-fixnum &optional))
+(defun image-total-size (image)
+  "Get total number of elements in the image."
+  (array-total-size (image-array image)))
 
 (defun coordinates-p (list)
   (every (lambda (x) (typep x '(unsigned-byte 32))) list))
@@ -51,5 +55,12 @@ context must remain alive while a created image lives."))
 (defun image-pixel (image coord)
   "Get image pixel at coordinates specified by @c(coord) in row-major
 order. Also can serve as a place for @c(setf)."
-  (declare (type image image))
   (apply #'aref (image-array image) coord))
+
+(-> image-gpu-s2 (image)
+    (values (simple-array fixnum) &optional))
+(defun image-gpu-s2 (image)
+  (let ((dimensions (image-dimensions image)))
+    (s2-from-dft
+     (%image-get (object-sap image) dimensions)
+     dimensions)))

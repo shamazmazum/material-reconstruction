@@ -428,6 +428,34 @@ void an_image_update_fft (struct an_image *image,
 }
 
 int
+an_image_get (struct an_image *image,
+              cl_float        *real,
+              cl_float        *imag) {
+    if (image->type != AN_IMAGE_TYPE_IMAGE) {
+        return 0;
+    }
+
+    size_t i;
+    struct an_gpu_context *ctx = image->ctx;
+    struct an_array_sizes asizes = an_get_array_sizes (image->dimensions, image->ndims);
+    cl_float2 *buffer = clEnqueueMapBuffer (ctx->queue, image->gpu_image, CL_TRUE,
+                                            CL_MAP_READ, 0, asizes.complex * sizeof(cl_float2),
+                                            0, NULL, NULL, NULL);
+    if (buffer == NULL) {
+        fprintf (stderr, "Cannot map image buffer for reading\n");
+        return 0;
+    }
+
+    for (i = 0; i < asizes.complex; i++) {
+        real[i] = buffer[i].x;
+        imag[i] = buffer[i].y;
+    }
+
+    clEnqueueUnmapMemObject (ctx->queue, image->gpu_image, buffer, 0, NULL, NULL);
+    return 1;
+}
+
+int
 an_distance (struct an_image *target,
              struct an_image *recon,
              cl_float        *distance) {

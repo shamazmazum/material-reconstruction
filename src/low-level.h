@@ -48,6 +48,12 @@ an_image_update_fft (struct an_image *image,
                      unsigned int     ndims,
                      cl_char          delta);
 
+/* Testing */
+int
+an_image_get (struct an_image *image,
+              cl_float        *real,
+              cl_float        *imag);
+
 /* Distance measurement */
 int
 an_distance (struct an_image *target,

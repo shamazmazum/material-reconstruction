@@ -13,7 +13,6 @@
 
            ;; Correlation functions
            #:s2
-           #:s2-dft
 
            #:destroy-gpu-object
            #:with-gpu-object
@@ -25,7 +24,9 @@
            #:image-s2
            #:image-pixel
            #:image-dimensions
+           #:image-total-size
            #:image-array
+           #:image-gpu-s2
 
            #:corrfn
            #:corrfn-s2

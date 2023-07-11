@@ -29,10 +29,10 @@
 
 ;; FFT
 (defcfun ("an_rfft" %rfft) :int
-  (array      :pointer)
-  (real       :pointer)
-  (imag       :pointer)
-  (dimensions :pointer)
+  (array      (:pointer :float))
+  (real       (:pointer :float))
+  (imag       (:pointer :float))
+  (dimensions (:pointer :uint32))
   (ndims      :int))
 
 (defun rfft (array)
@@ -62,10 +62,10 @@
     result))
 
 (defcfun ("an_irfft" %irfft) :int
-  (array      :pointer)
-  (real       :pointer)
-  (imag       :pointer)
-  (dimensions :pointer)
+  (array      (:pointer :float))
+  (real       (:pointer :float))
+  (imag       (:pointer :float))
+  (dimensions (:pointer :uint32))
   (ndims      :int))
 
 (defun irfft (array dimensions)
@@ -112,9 +112,9 @@
 ;; Images
 (defcfun ("an_create_image" %%create-image) image
   (ctx        gpu-context)
-  (real       :pointer)
-  (imag       :pointer)
-  (dimensions :pointer)
+  (real       (:pointer :float))
+  (imag       (:pointer :float))
+  (dimensions (:pointer :uint32))
   (ndims      :uint))
 
 (defun %create-image (ctx fft-array dimensions)
@@ -146,8 +146,8 @@
 
 (defcfun ("an_create_corrfn" %%create-corrfn) image
   (ctx        gpu-context)
-  (corrfn     :pointer)
-  (dimensions :pointer)
+  (corrfn     (:pointer :float))
+  (dimensions (:pointer :uint32))
   (ndims      :uint))
 
 (defun %create-corrfn (ctx corrfn-array dimensions)
@@ -176,7 +176,7 @@
 
 (defcfun ("an_image_update_fft" %%image-update-fft) :void
   (image image)
-  (coord :pointer)
+  (coord (:pointer :uint32))
   (ndims :uint)
   (delta :int8))
 
@@ -190,7 +190,7 @@
 (defcfun ("an_distance" %%distance) :int
   (target   image)
   (recon    image)
-  (distance :pointer))
+  (distance (:pointer :float)))
 
 (defun %distance (target-sap recon-sap)
   (with-foreign-object (distance-ptr :float)
@@ -198,3 +198,24 @@
       (error 'recon-error
              :format-control "Cannot calculate distance between images"))
     (mem-ref distance-ptr :float)))
+
+(defcfun ("an_image_get" %%image-get) :int
+  (image image)
+  (real (:pointer :float))
+  (imag (:pointer :float)))
+
+(defun %image-get (image dimensions)
+  (let* ((dft-dimensions (rfft-array-dimensions dimensions))
+         (total-size (reduce #'* dft-dimensions))
+         (real-buffer (make-array total-size :element-type 'single-float))
+         (imag-buffer (make-array total-size :element-type 'single-float))
+         (result (make-array dft-dimensions :element-type '(complex single-float))))
+    (with-pointer-to-vector-data (real-ptr real-buffer)
+      (with-pointer-to-vector-data (imag-ptr imag-buffer)
+        (when (zerop (%%image-get image real-ptr imag-ptr))
+          (error 'recon-error
+                 :format-control "Cannot upload image from GPU"))))
+    (map-into
+     (aops:flatten result)
+     #'complex real-buffer imag-buffer)
+    result))
