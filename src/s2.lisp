@@ -11,6 +11,10 @@ domain."
         (fft)
       (expt (abs fft) 2))))
 
+(declaim (inline dimensions->ranges))
+(defun dimensions->ranges (dimensions)
+  (mapcar (lambda (n) (select:range 0 n)) dimensions))
+
 (-> s2-from-dft ((simple-array (complex single-float)) list)
     (values (simple-array fixnum) &optional))
 (defun s2-from-dft (dft dimensions)
@@ -21,13 +25,32 @@ resulting autocorrelation is in space domain and not normalized."
                    (* dft (conjugate dft))))
          (s2 (irfft s2-dft dimensions))
          (total-size (reduce #'* dimensions)))
-    (aops:vectorize* 'fixnum
-        (s2)
-      (round (/ s2 total-size)))))
+    (apply #'select:select
+           (aops:vectorize* 'fixnum
+               (s2)
+             (round (/ s2 total-size)))
+           (dimensions->ranges
+            (rfft-array-dimensions dimensions)))))
 
-(-> s2 ((simple-array bit))
+;; S₂ in spatial domain used in tests + zero-padding for non-periodic S₂
+(declaim (inline dimensions-with-padding))
+(defun dimensions-with-padding (dimensions)
+  (mapcar (lambda (x) (1- (* 2 x))) dimensions))
+
+(-> pad-with-zeros ((simple-array bit))
+    (values (simple-array bit) &optional))
+(defun pad-with-zeros (array)
+  (let* ((dimensions (array-dimensions array))
+         (new-dimensions (dimensions-with-padding dimensions))
+         (ranges (mapcar (lambda (n) (select:range 0 n)) dimensions))
+         (result (make-array new-dimensions :element-type 'bit :initial-element 0)))
+    (setf (apply #'select:select result ranges) array)
+    result))
+
+(-> s2 ((simple-array bit) &key (:periodic boolean))
     (values (simple-array fixnum) &optional))
-(defun s2 (array)
+(defun s2 (array &key (periodic t))
   "Calculate two-point correlation function (autocorrelation) for the
 solid phase of the bit-array @c(array). The result is not normalized."
-  (s2-from-dft (rfft array) (array-dimensions array)))
+  (let ((array (if periodic array (pad-with-zeros array))))
+    (s2-from-dft (rfft array) (array-dimensions array))))

@@ -5,6 +5,7 @@
   :version "0.1"
   :defsystem-depends-on (:material-reconstruction-asdf)
   :depends-on (:cffi
+               :select
                :array-operations
                :alexandria
                :serapeum)
