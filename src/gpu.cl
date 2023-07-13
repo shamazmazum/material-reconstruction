@@ -6,7 +6,8 @@ struct update_data {
     unsigned int stride[MAX_DIMENSIONS];
 };
 
-__kernel void sparse_ft (__global float2 *image,
+__kernel void sparse_ft (__global float2 *input,
+                         __global float2 *output,
                          struct update_data upd,
                          float c) {
     float angle = 0;
@@ -20,8 +21,8 @@ __kernel void sparse_ft (__global float2 *image,
     }
 
     angle = 2 * M_PI * angle;
-    image[idx].x += c * cos(angle);
-    image[idx].y -= c * sin(angle);
+    output[idx].x = input[idx].x + c * cos(angle);
+    output[idx].y = input[idx].y - c * sin(angle);
 }
 
 __kernel void metric (__global float  *image1,

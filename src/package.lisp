@@ -26,6 +26,8 @@
            #:image-total-size
            #:image-array
            #:image-gpu-s2
+           #:image-start-modification
+           #:image-rollback
 
            #:corrfn
            #:corrfn-s2
