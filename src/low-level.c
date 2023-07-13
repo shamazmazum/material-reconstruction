@@ -383,6 +383,14 @@ bad:
     return NULL;
 }
 
+void
+an_image_store_state (struct an_image *image) {
+}
+
+void
+an_image_rollback (struct an_image *image) {
+}
+
 void an_image_update_fft (struct an_image *image,
                           const cl_uint   *coord,
                           unsigned int     ndims,

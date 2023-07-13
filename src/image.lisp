@@ -1,10 +1,18 @@
 (in-package :material-reconstruction)
 
+(sera:defconstructor image-change
+  (coord list)
+  (value bit))
+
 (defclass image ()
-  ((array :reader        image-array
-          :initarg       :array
-          :type          (simple-array bit)
-          :documentation "Underlying bit-array"))
+  ((array      :reader        image-array
+               :initarg       :array
+               :type          (simple-array bit)
+               :documentation "Underlying bit-array")
+   (changelist :accessor      image-changelist
+               :initform      nil
+               :type          list
+               :documentation "List of changes since the previous accepted modification"))
   (:documentation "Basic class for two-phase images"))
 
 (defclass image-s2 (image gpu-object)
@@ -21,6 +29,14 @@ context must remain alive while a created image lives."))
   (:documentation "Set image pixel at coordinates specified by
 @c(coord) in row-major order to @c(val)."))
 
+(defgeneric image-start-modification (image)
+  (:documentation "Start a new change, invalidating any previous
+rollback information."))
+
+(defgeneric image-rollback (image)
+  (:documentation "Rollback the image to the state of the previous
+call to @c(image-start-modification)"))
+
 (defmethod initialize-instance :after ((image image-s2) &key context &allow-other-keys)
   (let ((array (funcall
                 (if (image-s2-periodic-p image)
@@ -32,8 +48,27 @@ context must remain alive while a created image lives."))
            (rfft array)
            (array-dimensions array)))))
 
+(defmethod image-start-modification ((image image))
+  (setf (image-changelist image) nil))
+
+(defmethod image-start-modification :after ((image image-s2))
+  (%image-store-state (object-sap image)))
+
+(defmethod image-rollback ((image image))
+  (loop for change in (image-changelist image) do
+        (setf (apply #'aref (image-array image)
+                     (image-change-coord change))
+              (image-change-value change)))
+  (setf (image-changelist image) nil))
+
+(defmethod image-rollback :after ((image image-s2))
+  (%image-rollback (object-sap image)))
+
 (defmethod (setf image-pixel) (val (image image) coord)
-  (setf (apply #'aref (image-array image) coord) val))
+  (symbol-macrolet ((pixel-in-image (apply #'aref (image-array image) coord)))
+    (push (image-change coord pixel-in-image)
+          (image-changelist image))
+    (setf pixel-in-image val)))
 
 (defmethod (setf image-pixel) (val (image image-s2) coord)
   (declare (type bit val))

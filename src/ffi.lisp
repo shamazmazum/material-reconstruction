@@ -174,6 +174,12 @@
 (defcfun ("an_destroy_image" %destroy-image) :void
   (image image))
 
+(defcfun ("an_image_store_state" %image-store-state) :void
+  (image image))
+
+(defcfun ("an_image_rollback" %image-rollback) :void
+  (image image))
+
 (defcfun ("an_image_update_fft" %%image-update-fft) :void
   (image image)
   (coord (:pointer :uint32))

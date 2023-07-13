@@ -9,8 +9,11 @@
 (defclass modifier () ()
   (:documentation "Generic modifier class"))
 
-(defgeneric modify (modifier image))
-(defgeneric rollback (modifier image state))
+(defgeneric modify (modifier image &optional recursivep))
+
+(defmethod modify :before ((modifier modifier) image &optional recursivep)
+  (unless recursivep
+    (image-start-modification image)))
 
 (defclass interface-sampler (sampler) ()
   (:documentation "This sampler takes a sample on a boundary between
@@ -156,17 +159,13 @@ when creating an image. The class of the image must be a subclass of
   (:documentation "A modifier which flips the phase of taken sample
 (works with two-phase images only)."))
 
-(defmethod modify ((flipper flipper) image)
-  (declare (optimize (speed 3)))
+(defmethod modify ((flipper flipper) image &optional recursivep)
+  (declare (optimize (speed 3))
+           (ignore recursivep))
   (let ((coord (sample (modifier-sampler flipper) image)))
     (setf (image-pixel image coord)
-          (- 1 (image-pixel image coord)))
-    coord))
-
-(defmethod rollback ((flipper flipper) image state)
-  (declare (optimize (speed 3)))
-  (setf (image-pixel image state)
-        (- 1 (image-pixel image state))))
+          (- 1 (image-pixel image coord))))
+  image)
 
 (defclass swapper (modifier)
   ((sampler :reader   modifier-sampler
@@ -176,8 +175,9 @@ when creating an image. The class of the image must be a subclass of
   (:documentation "A modifier which swaps two samples with different
 phases."))
 
-(defmethod modify ((swapper swapper) image)
-  (declare (optimize (speed 3)))
+(defmethod modify ((swapper swapper) image &optional recursivep)
+  (declare (optimize (speed 3))
+           (ignore recursivep))
   (let* ((coord1 (sample (modifier-sampler swapper) image))
          (coord2 (sample (modifier-sampler swapper) image))
          (sample1 (image-pixel image coord1))
@@ -188,15 +188,7 @@ phases."))
       (t
        (setf (image-pixel image coord1) sample2
              (image-pixel image coord2) sample1)
-       (list coord1 coord2)))))
-
-(defmethod rollback ((swapper swapper) image state)
-  (destructuring-bind (coord1 coord2)
-      state
-    (let ((sample1 (image-pixel image coord1))
-          (sample2 (image-pixel image coord2)))
-      (setf (image-pixel image coord2) sample1
-            (image-pixel image coord1) sample2))))
+       image))))
 
 (defclass batch-modifier (modifier)
   ((modifier :initarg  :modifier
@@ -210,13 +202,9 @@ phases."))
   (:documentation "A modifier which makes @c(n) modifications at a
 time with the modifier @c(modifier)."))
 
-(defmethod modify ((modifier batch-modifier) image)
+(defmethod modify ((modifier batch-modifier) image &optional recursivep)
+  (declare (ignore recursivep))
   (loop with base-modifier = (batch-modifier modifier)
-        repeat (batch-modifier-n modifier) collect
-        (modify base-modifier image)))
-
-(defmethod rollback ((modifier batch-modifier) image state)
-  (declare (type list state))
-  (loop with base-modifier = (batch-modifier modifier)
-        for s in (reverse state) do
-          (rollback base-modifier image s)))
+        repeat (batch-modifier-n modifier) do
+        (modify base-modifier image t))
+  image)
