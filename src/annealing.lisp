@@ -1,10 +1,10 @@
 (in-package :material-reconstruction)
 
-(-> annealing-step (corrfn image single-float &key
-                           (:cost     function)
-                           (:cooldown function)
-                           (:modifier modifier))
-    (values single-float single-float boolean boolean &optional))
+(sera:-> annealing-step (corrfn image single-float &key
+                                (:cost     function)
+                                (:cooldown function)
+                                (:modifier modifier))
+         (values single-float single-float boolean boolean &optional))
 (defun annealing-step (target recon temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
 the image @c(recon) minimising @c(cost). @c(cost) is a function
@@ -52,10 +52,10 @@ indicates if a modification was discarded."
      (if rejected cost1 cost2)
      accepted rejected)))
 
-(-> run-annealing (corrfn image single-float positive-fixnum &key
-                          (:cost     function)
-                          (:cooldown function)
-                          (:modifier modifier))
+(sera:-> run-annealing (corrfn image single-float alex:positive-fixnum &key
+                               (:cost     function)
+                               (:cooldown function)
+                               (:modifier modifier))
     (values list &optional))
 (defun run-annealing (target recon t0 n &key cost modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)

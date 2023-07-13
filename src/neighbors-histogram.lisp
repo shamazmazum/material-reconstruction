@@ -18,7 +18,7 @@
 (defmacro do-neighbors ((index array center) &body body)
   "Bind INDEX an index of each neighbor of the element of ARRAY at
 index CENTER and execute BODY for each neighbor."
-  (with-gensyms (array-var neighbor-area shift rank dimensions)
+  (alex:with-gensyms (array-var neighbor-area shift rank dimensions)
     `(let* ((,array-var ,array)
             (,rank (array-rank ,array-var))
             (,dimensions (array-dimensions ,array-var))
@@ -27,8 +27,8 @@ index CENTER and execute BODY for each neighbor."
          (let ((,index (neighbor-index ,center ,shift ,dimensions)))
            ,@body)))))
 
-(-> neighbors-map ((simple-array bit))
-    (values (simple-array (unsigned-byte 8)) &optional))
+(sera:-> neighbors-map ((simple-array bit))
+         (values (simple-array (unsigned-byte 8)) &optional))
 (defun neighbors-map (array)
   "Return an array which has the same shape as @c(array). An element of
 the returned array with index @c(idx) contains a number of neighbors of
@@ -56,8 +56,8 @@ the returned array with index @c(idx) contains a number of neighbors of
                          neighbor-area)))))
     neighbor-map))
 
-(-> neighbors-hist ((simple-array (unsigned-byte 8)))
-    (values (simple-array fixnum (*)) &optional))
+(sera:-> neighbors-hist ((simple-array (unsigned-byte 8)))
+         (values (simple-array fixnum (*)) &optional))
 (defun neighbors-hist (different-neighbors)
   "Count the amount of pixels with a number of different phase
 neighbors varying from 0 to 3^D-1."
@@ -70,10 +70,10 @@ neighbors varying from 0 to 3^D-1."
          (aops:flatten different-neighbors))
     histogram))
 
-(-> update-neighbors-map ((simple-array (unsigned-byte 8))
-                          (simple-array bit)
-                          list)
-    (values list &optional))
+(sera:-> update-neighbors-map ((simple-array (unsigned-byte 8))
+                               (simple-array bit)
+                               list)
+         (values list &optional))
 (defun update-neighbors-map (different-neighbors array index)
   "Update DIFFERENT-NEIGHBORS map after ARRAY[INDEX] was flipped"
   (declare (optimize (speed 3)))

@@ -45,12 +45,12 @@ context must remain alive while a created image lives."))
 (defmethod destroy-gpu-object ((image-s2 image-s2))
   (%destroy-image (object-sap image-s2)))
 
-(-> image-dimensions (image) (values list &optional))
+(sera:-> image-dimensions (image) (values list &optional))
 (defun image-dimensions (image)
   "Get image dimensions."
   (array-dimensions (image-array image)))
 
-(-> image-total-size (image) (values positive-fixnum &optional))
+(sera:-> image-total-size (image) (values alex:positive-fixnum &optional))
 (defun image-total-size (image)
   "Get total number of elements in the image."
   (array-total-size (image-array image)))
@@ -58,14 +58,14 @@ context must remain alive while a created image lives."))
 (defun coordinates-p (list)
   (every (lambda (x) (typep x '(unsigned-byte 32))) list))
 
-(-> image-pixel (image (satisfies coordinates-p)) (values bit &optional))
+(sera:-> image-pixel (image (satisfies coordinates-p)) (values bit &optional))
 (defun image-pixel (image coord)
   "Get image pixel at coordinates specified by @c(coord) in row-major
 order. Also can serve as a place for @c(setf)."
   (apply #'aref (image-array image) coord))
 
-(-> image-gpu-s2 (image)
-    (values (simple-array fixnum) &optional))
+(sera:-> image-gpu-s2 (image)
+         (values (simple-array fixnum) &optional))
 (defun image-gpu-s2 (image)
   (let ((dimensions (funcall
                      (if (image-s2-periodic-p image)

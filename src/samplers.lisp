@@ -78,8 +78,8 @@ are 1.4 for 3D images and 2.4 for 2D images."))
   (:documentation "Sampler which prefers elements with higher number
 of neighbors lying in the different phase."))
 
-(-> sampling-cdf (dpn-sampler)
-    (values (simple-array single-float (*)) &optional))
+(sera:-> sampling-cdf (dpn-sampler)
+         (values (simple-array single-float (*)) &optional))
 (defun sampling-cdf (sampler)
   (declare (optimize (speed 3)))
   (let ((α    (dpn-sampler-α sampler))
@@ -109,7 +109,7 @@ of neighbors lying in the different phase."))
       (labels ((%sample ()
                  (let* ((index (mapcar #'random dimensions))
                         (neighbors-at-index (apply #'aref neighbors index)))
-                   (declare (type non-negative-fixnum neighbors-at-index))
+                   (declare (type alex:non-negative-fixnum neighbors-at-index))
                    (if (= neighbors-count neighbors-at-index) index (%sample)))))
         (%sample)))))
 
@@ -120,10 +120,10 @@ of neighbors lying in the different phase."))
         (neighbors-hist
          (dpn-sampler-neighbors-map sampler))))
 
-(-> dpn-update-callback (dpn-sampler)
-    (values (-> (image list update-type)
-                (values list &optional))
-            &optional))
+(sera:-> dpn-update-callback (dpn-sampler)
+         (values (sera:-> (image list update-type)
+                          (values list &optional))
+                 &optional))
 (defun dpn-update-callback (sampler)
   "Returns a callback which must be passed as @c(:callback) argument
 when creating an image. The class of the image must be a subclass of
@@ -206,7 +206,7 @@ phases."))
    (n        :initarg  :n
              :initform 2
              :reader   batch-modifier-n
-             :type     (integer 0 #.most-positive-fixnum)))
+             :type     alex:positive-fixnum))
   (:documentation "A modifier which makes @c(n) modifications at a
 time with the modifier @c(modifier)."))
 

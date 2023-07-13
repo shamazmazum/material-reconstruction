@@ -26,8 +26,8 @@ some metric")
   (setf (cost-initial cost)
         (image-distance cost target recon)))
 
-(-> cost (cost-state corrfn image)
-    (values single-float &optional))
+(sera:-> cost (cost-state corrfn image)
+         (values single-float &optional))
 (defun cost (cost target recon)
   "Calculate cost function for the image @c(recon) and the target set
 of correlation functions @c(target). @c(cost) is an object of type

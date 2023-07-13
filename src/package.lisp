@@ -6,11 +6,6 @@
   (:local-nicknames (#:si   #:stateless-iterators)
                     (#:alex #:alexandria)
                     (#:sera #:serapeum))
-  (:import-from :alexandria
-                #:with-gensyms
-                #:non-negative-fixnum
-                #:positive-fixnum)
-  (:import-from :serapeum #:->)
   (:export #:recon-error
            #:recon-warning
 

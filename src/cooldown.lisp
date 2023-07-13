@@ -1,10 +1,10 @@
 (in-package :material-reconstruction)
 
-(-> exponential-cooldown (&key (:n positive-fixnum)
-                               (:α single-float))
-    (values (-> (single-float single-float)
-                (values single-float &optional))
-            &optional))
+(sera:-> exponential-cooldown (&key (:n alex:positive-fixnum)
+                                    (:α single-float))
+         (values (sera:-> (single-float single-float)
+                          (values single-float &optional))
+                 &optional))
 (defun exponential-cooldown (&key (n 10000) (α 0.95f0))
   "Return exponential cooldown schedule with decay coefficient
 @c(α). Annealing temperature @c(temp) decreases @c(α) times
@@ -20,15 +20,15 @@ each @c(n)-th step."
           (* temperature α)
           temperature))))
 
-(-> mean ((simple-array single-float (*)))
-    (values single-float &optional))
+(sera:-> mean ((simple-array single-float (*)))
+         (values single-float &optional))
 (defun mean (array)
   (declare (optimize (speed 3)))
   (/ (reduce #'+ array :initial-value 0.0)
      (length array)))
 
-(-> std ((simple-array single-float (*)))
-    (values single-float &optional))
+(sera:-> std ((simple-array single-float (*)))
+         (values single-float &optional))
 (defun std (array)
   (declare (optimize (speed 3)))
   (let ((mean (mean array)))
@@ -41,11 +41,11 @@ each @c(n)-th step."
          :initial-value 0f0)
         (1- (length array))))))
 
-(-> aarts-korst-cooldown (&key (:n positive-fixnum)
-                               (:α single-float))
-    (values (-> (single-float single-float)
-                (values single-float &optional))
-            &optional))
+(sera:-> aarts-korst-cooldown (&key (:n alex:positive-fixnum)
+                                    (:α single-float))
+         (values (sera:-> (single-float single-float)
+                          (values single-float &optional))
+                 &optional))
 (defun aarts-korst-cooldown (&key (n 10000) (α 1.0))
   "Create a cooldown schedule described by Aarts and Korst @b(FIXME:
 where?). Annealing temperature decreases once each @c(n) steps
@@ -54,7 +54,7 @@ faster the system loses temperature."
   (declare (optimize (speed 3)))
   (let ((costs (make-array n :element-type 'single-float))
         (counter 0))
-    (declare (type non-negative-fixnum counter))
+    (declare (type alex:non-negative-fixnum counter))
     (lambda (temperature cost)
       (declare (type single-float temperature cost))
       (setf (aref costs counter) cost

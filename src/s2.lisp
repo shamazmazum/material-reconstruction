@@ -1,7 +1,7 @@
 (in-package :material-reconstruction)
 
-(-> s2-dft ((simple-array bit))
-    (values (simple-array single-float) &optional))
+(sera:-> s2-dft ((simple-array bit))
+         (values (simple-array single-float) &optional))
 (defun s2-dft (array)
   "Calculate two-point correlation function for the solid phase of the
 bit-array @c(array). The result is not normalized and in frequency
@@ -15,8 +15,8 @@ domain."
 (defun dimensions->ranges (dimensions)
   (mapcar (lambda (n) (select:range 0 n)) dimensions))
 
-(-> s2-from-dft ((simple-array (complex single-float)) list)
-    (values (simple-array fixnum) &optional))
+(sera:-> s2-from-dft ((simple-array (complex single-float)) list)
+         (values (simple-array fixnum) &optional))
 (defun s2-from-dft (dft dimensions)
   "Calculate autocorrelation from the image in frequency domain. The
 resulting autocorrelation is in space domain and not normalized."
@@ -37,8 +37,8 @@ resulting autocorrelation is in space domain and not normalized."
 (defun dimensions-with-padding (dimensions)
   (mapcar (lambda (x) (1- (* 2 x))) dimensions))
 
-(-> pad-with-zeros ((simple-array bit))
-    (values (simple-array bit) &optional))
+(sera:-> pad-with-zeros ((simple-array bit))
+         (values (simple-array bit) &optional))
 (defun pad-with-zeros (array)
   (let* ((dimensions (array-dimensions array))
          (new-dimensions (dimensions-with-padding dimensions))
@@ -47,8 +47,8 @@ resulting autocorrelation is in space domain and not normalized."
     (setf (apply #'select:select result ranges) array)
     result))
 
-(-> s2 ((simple-array bit) &key (:periodic-p boolean))
-    (values (simple-array fixnum) &optional))
+(sera:-> s2 ((simple-array bit) &key (:periodic-p boolean))
+         (values (simple-array fixnum) &optional))
 (defun s2 (array &key (periodic-p t))
   "Calculate two-point correlation function (autocorrelation) for the
 solid phase of the bit-array @c(array). The result is not normalized."

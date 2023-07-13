@@ -1,12 +1,12 @@
 (in-package :material-reconstruction)
 
-(-> count-foreground-phase ((simple-array bit))
-    (values non-negative-fixnum &optional))
+(sera:-> count-foreground-phase ((simple-array bit))
+         (values alex:non-negative-fixnum &optional))
 (defun count-foreground-phase (array)
   (reduce #'+ (aops:flatten array)))
 
-(-> initialize-random ((simple-array bit))
-    (values (simple-array bit) &optional))
+(sera:-> initialize-random ((simple-array bit))
+         (values (simple-array bit) &optional))
 (defun initialize-random (target)
   "Create an array with random data with the same ratio of binary
 phases as in @c(target). @c(target) must be a binary array."
