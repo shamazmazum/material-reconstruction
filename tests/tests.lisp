@@ -47,19 +47,27 @@
 (in-suite annealing)
 (defun rollback (side ndims)
   (let* ((array (create-random-array side ndims))
-         (copy  (alexandria:copy-array array)))
+         (cpu-image (make-instance 'image :array (alexandria:copy-array array))))
     (with-gpu-objects ((ctx gpu-context)
-                       (image image-s2
-                              :array array
-                              :context ctx))
-      (image-start-modification image)
-      (loop repeat 500
-            for index = (loop repeat ndims collect (random side)) do
-            (setf (image-pixel image index)
-                  (- 1 (image-pixel image index))))
-      (image-rollback image)
-      (is (equalp (image-array image) copy))
-      (is (equalp (s2 copy) (image-gpu-s2 image))))))
+                       (gpu-image image-s2
+                                  :array array
+                                  :context ctx))
+      (loop repeat 50 do
+            (image-start-modification gpu-image)
+            (image-start-modification cpu-image)
+            (loop repeat 500
+                  for index = (loop repeat ndims collect (random side)) do
+                  (setf (image-pixel gpu-image index)
+                        (- 1 (image-pixel gpu-image index))
+                        (image-pixel cpu-image index)
+                        (- 1 (image-pixel cpu-image index))))
+            (when (zerop (random 2))
+              (image-rollback cpu-image)
+              (image-rollback gpu-image))
+            (is (equalp (image-array cpu-image)
+                        (image-array gpu-image)))
+            (is (equalp (s2 (image-array cpu-image))
+                        (image-gpu-s2 gpu-image)))))))
 
 (test rollback-1d
   (rollback 10000 1))
