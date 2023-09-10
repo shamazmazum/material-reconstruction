@@ -3,7 +3,6 @@
   :description "Simulated annealing of materials based on S₂ and L₂ correlation functions"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :version "0.1"
-  :defsystem-depends-on (:material-reconstruction-asdf)
   :depends-on (:cffi
                :stateless-iterators
                :select
@@ -12,8 +11,7 @@
                :serapeum)
   :serial t
   :pathname "src/"
-  :components ((c-library "low-level")
-               (:file "package")
+  :components ((:file "package")
                (:file "conditions")
                (:file "ffi")
                (:file "s2")

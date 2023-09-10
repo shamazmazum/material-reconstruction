@@ -16,13 +16,11 @@
   (map '(vector (unsigned-byte 32))
        #'identity list))
 
-(define-foreign-library libanneal-ocl
-  (:unix (:or #.(asdf:system-relative-pathname '#:material-reconstruction
-                                               "src/liblow-level.so")
-              "liblow-level.so"))
-  (t (:default "low-level")))
+(define-foreign-library libannealing-lowlevel
+  (:unix (:or "libannealing-lowlevel.so"))
+  (t (:default "libannealing-lowlevel")))
 
-(use-foreign-library libanneal-ocl)
+(use-foreign-library libannealing-lowlevel)
 
 (defctype gpu-context :pointer)
 (defctype image       :pointer)
@@ -96,17 +94,17 @@
     result))
 
 ;; GPU context
-(defcfun ("an_create_gpu_context" %%create-gpu-context) gpu-context
-  (program :string))
+(defcfun ("an_create_context" %%create-gpu-context) gpu-context
+  (ndim :uint))
 
-(defun %create-gpu-context (program-path)
-  (let ((context (%%create-gpu-context program-path)))
+(defun %create-gpu-context (ndim)
+  (let ((context (%%create-gpu-context ndim)))
     (when (null-pointer-p context)
       (error 'recon-error
              :format-control "Cannot create GPU context"))
     context))
 
-(defcfun ("an_destroy_gpu_context" %destroy-gpu-context) :void
+(defcfun ("an_destroy_context" %destroy-gpu-context) :void
   (ctx gpu-context))
 
 ;; Images
@@ -115,7 +113,7 @@
   (real       (:pointer :float))
   (imag       (:pointer :float))
   (dimensions (:pointer :uint32))
-  (ndims      :uint))
+  (ndim       :uint))
 
 (defun %create-image (ctx fft-array dimensions)
   (declare (type (simple-array (complex single-float)) fft-array)
@@ -148,7 +146,7 @@
   (ctx        gpu-context)
   (corrfn     (:pointer :float))
   (dimensions (:pointer :uint32))
-  (ndims      :uint))
+  (ndim       :uint))
 
 (defun %create-corrfn (ctx corrfn-array dimensions)
   (declare (type (simple-array single-float) corrfn-array)
@@ -183,15 +181,17 @@
 (defcfun ("an_image_update_fft" %%image-update-fft) :void
   (image image)
   (coord (:pointer :uint32))
-  (ndims :uint)
-  (delta :int8))
+  (ndim  :uint)
+  (delta :float))
 
 (defun %image-update-fft (image delta coord)
   ;; XXX: coord is not "shareable array", but OK for SBCL
   (let ((coord (map '(vector (unsigned-byte 32))
                     #'identity coord)))
     (with-pointer-to-vector-data (coord-ptr coord)
-      (%%image-update-fft image coord-ptr (length coord) delta))))
+      (%%image-update-fft image coord-ptr
+                          (length coord)
+                          (float delta)))))
 
 (defcfun ("an_distance" %%distance) :int
   (target   image)

@@ -48,7 +48,7 @@
 (defun rollback (side ndims)
   (let* ((array (create-random-array side ndims))
          (cpu-image (make-instance 'image :array (alexandria:copy-array array))))
-    (with-gpu-objects ((ctx gpu-context)
+    (with-gpu-objects ((ctx gpu-context :dimensions ndims)
                        (gpu-image image-s2
                                   :array array
                                   :context ctx))
@@ -81,7 +81,7 @@
 (test annealing-s2
   (let* ((target-array  (create-image-with-noise 100 100))
          (initial-array (initialize-random target-array)))
-    (with-gpu-objects ((ctx gpu-context)
+    (with-gpu-objects ((ctx gpu-context :dimensions (array-rank target-array))
                        (recon  image-s2  :array initial-array
                                          :context ctx)
                        (target corrfn-s2 :array target-array
@@ -101,7 +101,7 @@
 (in-suite s2-update)
 (defun test-s2-update (size ndims periodic)
   (let ((data (create-random-array size ndims)))
-    (with-gpu-objects ((ctx gpu-context)
+    (with-gpu-objects ((ctx gpu-context :dimensions ndims)
                        (image image-s2
                               :periodic-p periodic
                               :array      data
