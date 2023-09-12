@@ -32,6 +32,8 @@
            #:corrfn
            #:corrfn-s2
 
+           #:metric-s2
+
            #:modifier
            #:sampler
            #:flipper
@@ -52,6 +54,6 @@
            #:aarts-korst-cooldown
 
            #:cost
-           #:cost-state
+           #:cost-s2
            #:annealing-step
            #:run-annealing))

@@ -1,11 +1,11 @@
 (in-package :material-reconstruction)
 
-(sera:-> annealing-step (corrfn image single-float &key
-                                (:cost     function)
-                                (:cooldown function)
-                                (:modifier modifier))
+(sera:-> annealing-step (image single-float &key
+                               (:cost     cost)
+                               (:cooldown function)
+                               (:modifier modifier))
          (values single-float single-float boolean boolean &optional))
-(defun annealing-step (target recon temp &key cost modifier cooldown)
+(defun annealing-step (recon temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies
 the image @c(recon) minimising @c(cost). @c(cost) is a function
 which takes one @c(corrfn) and one @c(image) object and returns a real
@@ -32,9 +32,9 @@ indicates that a modification to the system has resulted in an
 increase of the cost function and another boolean value which
 indicates if a modification was discarded."
   (declare (optimize (speed 3))
-           (type function cost cooldown))
-  (let ((cost1 (funcall cost target recon))
-        (cost2 (funcall cost target (modify modifier recon)))
+           (type function cooldown))
+  (let ((cost1 (cost cost))
+        (cost2 (progn (modify modifier recon) (cost cost)))
         accepted rejected)
     (declare (type single-float cost1 cost2))
     (when (> cost2 cost1)
@@ -51,12 +51,12 @@ indicates if a modification was discarded."
      (if rejected cost1 cost2)
      accepted rejected)))
 
-(sera:-> run-annealing (corrfn image single-float alex:positive-fixnum &key
-                               (:cost     function)
-                               (:cooldown function)
-                               (:modifier modifier))
+(sera:-> run-annealing (image single-float alex:positive-fixnum &key
+                              (:cost     cost)
+                              (:cooldown function)
+                              (:modifier modifier))
     (values list &optional))
-(defun run-annealing (target recon t0 n &key cost modifier cooldown)
+(defun run-annealing (recon t0 n &key cost modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)
 steps. See also @c(annealing-step)."
   (let ((temp t0)
@@ -65,7 +65,7 @@ steps. See also @c(annealing-step)."
         cost-list)
     (loop for steps below n do
       (multiple-value-bind (new-temp step-cost step-acc step-rej)
-          (annealing-step target recon temp
+          (annealing-step recon temp
                           :cost     cost
                           :modifier modifier
                           :cooldown cooldown)

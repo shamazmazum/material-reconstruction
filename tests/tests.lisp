@@ -85,18 +85,19 @@
                        (recon  image-s2  :array initial-array
                                          :context ctx)
                        (target corrfn-s2 :array target-array
-                                         :context ctx))
-      (let ((cost-state (make-instance 'cost-state
-                                       :target target
-                                       :recon  recon))
+                                         :context ctx)
+                       (metric metric-s2 :context ctx
+                                         :recon   recon
+                                         :target  target))
+      (let ((cost (make-instance 'cost-s2 :metric metric))
             (cooldown   (aarts-korst-cooldown :n 50 :α 1.0))
             (modifier   (make-modifier)))
         (muffle-output
-          (run-annealing target recon 1f-5 10000
-                         :cost     (alexandria:curry #'cost cost-state)
+          (run-annealing recon 1f-5 10000
+                         :cost     cost
                          :cooldown cooldown
                          :modifier modifier))
-        (is (< (cost cost-state target recon) 0.9))))))
+        (is (< (cost cost) 0.9))))))
 
 (in-suite s2-update)
 (defun test-s2-update (size ndims periodic)

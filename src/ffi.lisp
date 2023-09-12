@@ -25,6 +25,7 @@
 (defctype gpu-context :pointer)
 (defctype image       :pointer)
 (defctype corrfn      :pointer)
+(defctype metric      :pointer)
 
 ;; FFT
 (defcfun ("an_rfft" %rfft) :int
@@ -197,18 +198,6 @@
                           (length coord)
                           (float delta)))))
 
-(defcfun ("an_distance" %%distance) :int
-  (target   corrfn)
-  (recon    image)
-  (distance (:pointer :float)))
-
-(defun %distance (target-sap recon-sap)
-  (with-foreign-object (distance-ptr :float)
-    (when (zerop (%%distance target-sap recon-sap distance-ptr))
-      (error 'recon-error
-             :format-control "Cannot calculate distance between images"))
-    (mem-ref distance-ptr :float)))
-
 (defcfun ("an_image_get" %%image-get) :int
   (image image)
   (real (:pointer :float))
@@ -229,3 +218,23 @@
      (aops:flatten result)
      #'complex real-buffer imag-buffer)
     result))
+
+;; Metric
+(defcfun ("an_create_metric" %create-metric) metric
+  (ctx        gpu-context)
+  (target     corrfn)
+  (recon      image))
+
+(defcfun ("an_destroy_metric" %destroy-metric) :void
+  (metric metric))
+
+(defcfun ("an_distance" %%distance) :int
+  (metric metric)
+  (distance (:pointer :float)))
+
+(defun %distance (metric-sap)
+  (with-foreign-object (distance-ptr :float)
+    (when (zerop (%%distance metric-sap distance-ptr))
+      (error 'recon-error
+             :format-control "Cannot calculate distance between images"))
+    (mem-ref distance-ptr :float)))

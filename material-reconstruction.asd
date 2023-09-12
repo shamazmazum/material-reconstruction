@@ -19,6 +19,7 @@
                (:file "gpu-context")
                (:file "corrfns")
                (:file "image")
+               (:file "metric")
                (:file "initialization")
                (:file "neighbors-histogram")
                (:file "samplers")
