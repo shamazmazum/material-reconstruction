@@ -25,5 +25,5 @@ image lives. @c(:s2) keyword must hold S₂ correlation function and
            s2 dimensions))))
 
 (defmethod destroy-gpu-object ((corrfn-s2 corrfn-s2))
-  ;; These objects are an_image on C side
-  (%destroy-image (object-sap corrfn-s2)))
+  ;; These objects are an_corrfn on C side
+  (%destroy-corrfn (object-sap corrfn-s2)))

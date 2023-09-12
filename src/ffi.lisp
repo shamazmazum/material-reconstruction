@@ -24,6 +24,7 @@
 
 (defctype gpu-context :pointer)
 (defctype image       :pointer)
+(defctype corrfn      :pointer)
 
 ;; FFT
 (defcfun ("an_rfft" %rfft) :int
@@ -142,7 +143,7 @@
                    :format-control "Cannot upload image to GPU"))
           image))))))
 
-(defcfun ("an_create_corrfn" %%create-corrfn) image
+(defcfun ("an_create_corrfn" %%create-corrfn) corrfn
   (ctx        gpu-context)
   (corrfn     (:pointer :float))
   (dimensions (:pointer :uint32))
@@ -172,6 +173,9 @@
 (defcfun ("an_destroy_image" %destroy-image) :void
   (image image))
 
+(defcfun ("an_destroy_corrfn" %destroy-corrfn) :void
+  (corrfn corrfn))
+
 (defcfun ("an_image_store_state" %image-store-state) :void
   (image image))
 
@@ -194,7 +198,7 @@
                           (float delta)))))
 
 (defcfun ("an_distance" %%distance) :int
-  (target   image)
+  (target   corrfn)
   (recon    image)
   (distance (:pointer :float)))
 
