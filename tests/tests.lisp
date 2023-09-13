@@ -45,7 +45,6 @@
      ,@body))
 
 (in-suite annealing)
-
 (test annealing-s2
   (let* ((target-array  (create-image-with-noise 100 100))
          (initial-array (initialize-random target-array)))
