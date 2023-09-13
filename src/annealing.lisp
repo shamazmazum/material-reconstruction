@@ -34,7 +34,8 @@ indicates if a modification was discarded."
   (declare (optimize (speed 3))
            (type function cooldown))
   (let ((cost1 (cost cost))
-        (cost2 (progn (modify modifier recon) (cost cost)))
+        (state (modify modifier recon))
+        (cost2 (cost cost))
         accepted rejected)
     (declare (type single-float cost1 cost2))
     (when (> cost2 cost1)
@@ -42,7 +43,7 @@ indicates if a modification was discarded."
       (let ((random (random 1d0))
             (threshold (exp (/ (- (- cost2 cost1)) temp))))
         (when (> random threshold)
-          (image-rollback recon)
+          (rollback modifier recon state)
           (setq rejected t)))
       (setq accepted (not rejected)))
 
