@@ -63,11 +63,11 @@
                         (- 1 (image-pixel cpu-image index))))
             (when (zerop (random 2))
               (image-rollback cpu-image)
-              (image-rollback gpu-image)))
-      (is (equalp (image-array cpu-image)
-                  (image-array gpu-image)))
-      (is (equalp (s2 (image-array cpu-image))
-                  (image-gpu-s2 gpu-image))))))
+              (image-rollback gpu-image))
+            (is (equalp (image-array cpu-image)
+                        (image-array gpu-image)))
+            (is (equalp (s2 (image-array cpu-image))
+                        (image-gpu-s2 gpu-image)))))))
 
 (test rollback-1d
   (rollback 10000 1))
@@ -160,14 +160,10 @@
          (image (make-instance 'test-image
                                :array data
                                :callback (dpn-update-callback sampler))))
-    (loop repeat 10 do
-          (image-start-modification image)
-          (loop repeat 3000
-                for index = (loop repeat ndims collect (random size)) do
-                (setf (image-pixel image index)
-                      (- 1 (image-pixel image index))))
-          (when (zerop (random 2))
-            (image-rollback image)))
+    (loop repeat 5000
+          for index = (loop repeat ndims collect (random size)) do
+          (setf (image-pixel image index)
+                (- 1 (image-pixel image index))))
     (let ((neighbors-map (neighbors-map data)))
       (is (equalp neighbors-map (dpn-sampler-neighbors-map sampler)))
       (is (equalp (neighbors-hist neighbors-map)

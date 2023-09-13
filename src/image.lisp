@@ -29,12 +29,6 @@ context must remain alive while a created image lives."))
   (:documentation "Set image pixel at coordinates specified by
 @c(coord) in row-major order to @c(val)."))
 
-;; KLUDGE
-(defgeneric (setf image-pixel-rollback) (val image coord)
-  (:documentation "Set image pixel at coordinates specified by
-@c(coord) in row-major order to @c(val). Only for internal use by
-@c(image-rollback)."))
-
 (defgeneric image-start-modification (image)
   (:documentation "Start a new change, invalidating any previous
 rollback information."))
@@ -62,7 +56,8 @@ call to @c(image-start-modification)"))
 
 (defmethod image-rollback ((image image))
   (loop for change in (image-changelist image) do
-        (setf (image-pixel-rollback image (image-change-coord change))
+        (setf (apply #'aref (image-array image)
+                     (image-change-coord change))
               (image-change-value change)))
   (setf (image-changelist image) nil))
 
@@ -74,9 +69,6 @@ call to @c(image-start-modification)"))
     (push (image-change coord pixel-in-image)
           (image-changelist image))
     (setf pixel-in-image val)))
-
-(defmethod (setf image-pixel-rollback) (val (image image) coord)
-  (setf (apply #'aref (image-array image) coord) val))
 
 (defmethod (setf image-pixel) (val (image image-s2) coord)
   (declare (type bit val))
@@ -134,13 +126,10 @@ before the actual change is made and the second time after the change
 is made. For example, image classes whose instances are used with
 @c(dpn-sampler) must be subclasses of @c(update-callback-mixin)."))
 
-(macrolet ((frob (name)
-             `(defmethod (setf ,name) :around (val (object update-callback-mixin) coord)
-                         (let ((updatedp (/= val (image-pixel object coord))))
-                           (when updatedp
-                             (funcall (update-callback object) object coord :pre))
-                           (call-next-method)
-                           (when updatedp
-                             (funcall (update-callback object) object coord :post))))))
-  (frob image-pixel)
-  (frob image-pixel-rollback))
+(defmethod (setf image-pixel) :around (val (object update-callback-mixin) coord)
+  (let ((updatedp (/= val (image-pixel object coord))))
+    (when updatedp
+      (funcall (update-callback object) object coord :pre))
+    (call-next-method)
+    (when updatedp
+      (funcall (update-callback object) object coord :post))))
