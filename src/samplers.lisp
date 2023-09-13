@@ -184,7 +184,7 @@ phases."))
          (sample2 (image-pixel image coord2)))
     (cond
       ((= sample1 sample2)
-       (modify swapper image t))
+       (modify swapper image))
       (t
        (setf (image-pixel image coord1) sample2
              (image-pixel image coord2) sample1)
