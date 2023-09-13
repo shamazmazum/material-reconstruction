@@ -97,10 +97,11 @@
 
 ;; GPU context
 (defcfun ("an_create_context" %%create-gpu-context) gpu-context
-  (ndim :uint))
+  (ndim       :uint)
+  (validation (:boolean :int)))
 
-(defun %create-gpu-context (ndim)
-  (let ((context (%%create-gpu-context ndim)))
+(defun %create-gpu-context (ndim validation)
+  (let ((context (%%create-gpu-context ndim validation)))
     (when (null-pointer-p context)
       (error 'recon-error
              :format-control "Cannot create GPU context"))
