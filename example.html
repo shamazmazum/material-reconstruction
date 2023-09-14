@@ -42,7 +42,7 @@
   <h1 class="doc-title">Material Reconstruction</h1>
   <article id="article" data-section="example">
     <aside>
-      <ol class="toc"><li><a href="index.html" data-node="index">Overview</a></li><li><a href="dependencies.html" data-node="dependencies">Dependencies</a></li><li><a href="example.html" data-node="example">Example</a></li><li><a href="api.html" data-node="api">API</a></li></ol>
+      <ol class="toc"><li><a href="index.html" data-node="index">Overview</a></li><li><a href="example.html" data-node="example">Example</a></li><li><a href="api.html" data-node="api">API</a></li></ol>
     </aside>
     <main class="codex-section">
       <header>
@@ -50,13 +50,10 @@
       </header>
       <div class="content">
         <p>
-   The following example takes an original image (a slice of <b>FIXME: ceramic</b>)
-   and an initial approximation and reconstructs the original. Dimensions of the
-   original image are 300x300 pixels. The code below was used to run a
-   reconstruction. The value of <code>steps</code> argument was <code>3000000</code>.
+   The following example takes an original \(500 \times 500\) image and
+   reconstructs it from its autocorrelation function in 1.5M steps of annealing.
    </p><pre><code class="lisp">(defpackage annealing-test
   (:use #:cl #:recon)
-  (:import-from #:alexandria #:curry)
   (:export #:test-annealing-w/-init
            #:read-image))
 (in-package :annealing-test)
@@ -73,51 +70,64 @@
     array))
 
 (defun make-modifier ()
-  &quot;Create a modifier which will sample the pixel at the boundary
-between phases (zeros and ones) and change the value of the pixel to
-the opposite.&quot;
-  (make-instance 'batch-modifier
-                 :modifier (make-instance 'flipper
-                                          :sampler (make-instance 'interface-sampler))))
+  &quot;Create a modifier which will sample two pixels at the boundary
+between phases (zeros and ones) and belonging to two different phases
+and swap their values.&quot;
+(make-instance 'swapper
+               :sampler (make-instance 'interface-sampler)))
 
-(defun test-annealing-w/-init (array steps &amp;key (t0 1d-5))
+(defun test-annealing-w/-init (array steps &amp;key (t0 1f-5))
   &quot;Run simulation of annealing for STEPS steps. ARRAY is the original binary
 image. T0 is initial temperature of the system.&quot;
   (declare (type (simple-array bit) array))
-  (with-gpu-objects (;; Create OpenCL context
-                     (ctx gpu-context)
-                     ;; Calculate correlation functions of the original
+  (with-gpu-objects ((ctx gpu-context) ; Create GPU context
+                     ;; Calculate correlation functions of the original image
                      (target corrfn-s2
-                             ;; We have to supply OpenCL context if we use S₂ function
-                             :context ctx
-                             :array   array)
+                             ;; GPU context
+                             :context    ctx
+                             ;; Original array. Alternatively you can
+                             ;; specify :S2 and :DIMENSIONS for
+                             ;; precalculated autocorrelation
+                             :array      array
+                             ;; Autocorrelation is calculated with
+                             ;; periodic boundary conditions
+                             :periodic-p t)
                      ;; Create an image which will be reconstructed
                      (recon  image-s2
-                             ;; Pass OpenCL context.
-                             :context ctx
-                             ;; In case of image, you only need to supply an initial approximation.
-                             :array   (initialize-random array)))
-    (let (;; cost-state is a state which holds initial values of correlation functions
-          (cost-state (make-instance 'cost-state
-                                     :target target
-                                     :recon  recon))
+                             ;; GPU context.
+                             :context    ctx
+                             ;; Initial approximation for reconstruction
+                             :array      (initialize-random array)
+                             ;; Must match :PERIODIC-P for target
+                             :periodic-p t)
+                     ;; Metric object which measures difference
+                     ;; between the target's and the reconstruction's
+                     ;; autocorrelation functions
+                     (metric metric-s2
+                             :context    ctx
+                             :recon      recon
+                             :target     target))
+    (let (;; Cost objects are used for calculation of the cost
+          ;;function which is minimized during annealing. COST-S2 is
+          ;;backed my METRIC-S2 object.
+          (cost     (make-instance 'cost-s2 :metric metric))
           ;; Create cooldown schedule
-          (cooldown  (aarts-korst-cooldown :n 25000 :alpha 1d0))
+          (cooldown (aarts-korst-cooldown :n 25000 :α 1.0))
           ;; Make modifier object
-          (modifier  (make-modifier)))
+          (modifier (make-modifier)))
       (values
-       ;; run-annealing runs simulated annealing with initial temperature t0
-       ;; iterating steps times and returns a list containing values of the cost
+       ;; RUN-ANNEALING runs simulated annealing with initial temperature T0
+       ;; iterating STEPS times and returns a list containing values of the cost
        ;; function at each step
-       (run-annealing target recon t0 steps
-                      :cost     (alexandria:curry #'cost cost-state)
+       (run-annealing recon t0 steps
+                      :cost     cost
                       :cooldown cooldown
                       :modifier modifier)
        ;; Get reconstructed image
        (image-array recon)))))
    </code></pre><p>   The original image: <img src="original.png"/>
-   The initial approximation: <img src="init.png"/>
    The reconstruction: <img src="reconstruction.png"/>
+   Point-wise difference in autocorrelation: <img src="diff.png"/>
 </p>
       </div>
     </main>
