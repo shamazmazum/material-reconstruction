@@ -16,11 +16,11 @@
   (map '(vector (unsigned-byte 32))
        #'identity list))
 
-(define-foreign-library libannealing-lowlevel
-  (:unix (:or "libannealing-lowlevel.so"))
-  (t (:default "libannealing-lowlevel")))
-
-(use-foreign-library libannealing-lowlevel)
+(unless (uiop:getenv "CI")
+  (define-foreign-library libannealing-lowlevel
+    (:unix (:or "libannealing-lowlevel.so"))
+    (t (:default "libannealing-lowlevel")))
+  (use-foreign-library libannealing-lowlevel))
 
 (defctype gpu-context :pointer)
 (defctype image       :pointer)
