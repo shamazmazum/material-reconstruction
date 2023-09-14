@@ -8,10 +8,12 @@
 (defclass corrfn-s2 (corrfn gpu-object)
   ()
   (:documentation "Class for S₂ (two-point) correlation functions
-without association with an image. @c(:context) keyword argument must
-hold OpenCL context. The context must remain alive while a created
-image lives. @c(:s2) keyword must hold S₂ correlation function and
-@c(:dimensions) are dimensions of the original image."))
+without association with an image. When instantiating, @c(:context)
+keyword argument must hold @c(gpu-context) object. The context must
+remain alive while the created image lives. @c(:s2) keyword must hold
+S₂ correlation function and @c(:dimensions) are dimensions of the
+original image. Alternatively, you can pass @c(:array) and
+@c(:periodic-p) arguments to calculate S₂ function from that array."))
 
 (defmethod initialize-instance :after ((corrfn-s2 corrfn-s2)
                                        &key (periodic-p t) context array s2 dimensions

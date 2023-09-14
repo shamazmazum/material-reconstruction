@@ -3,7 +3,10 @@
 (defclass metric-s2 (gpu-object)
   ()
   (:documentation "Objects of this class allow to compute difference
-in S2 (autocorrelation function) on GPU."))
+in S₂ (autocorrelation function) on GPU. Required keyword arguments to
+@c(make-instance) are @c(context) for GPU context, @c(recon) for
+reconstructed image and @c(target) for target autocorrelation
+function."))
 
 (defmethod initialize-instance :after ((metric-s2 metric-s2)
                                        &key context recon target &allow-other-keys)

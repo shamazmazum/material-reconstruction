@@ -16,6 +16,7 @@
            #:with-gpu-object
            #:with-gpu-objects
 
+           #:*validation-layers-p*
            #:gpu-context
 
            #:image

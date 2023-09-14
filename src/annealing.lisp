@@ -6,18 +6,18 @@
                                (:modifier modifier))
          (values single-float single-float boolean boolean &optional))
 (defun annealing-step (recon temp &key cost modifier cooldown)
-  "Perform an annealing step. An annealing procedure modifies
-the image @c(recon) minimising @c(cost). @c(cost) is a function
-which takes one @c(corrfn) and one @c(image) object and returns a real
-number. It usually takes into account one or two correlation
-functions. For more information, see documentation abount function
-with the same name @c(cost).
+  "Perform an annealing step. An annealing procedure modifies the
+image @c(recon) minimising @c(cost). @c(cost) is an object of type
+@c(cost) which can be used to evaluate @i(similarity) of two images or
+of the image's correlation function with the target
+autocorrelation. Currently the only instantiatible subclass of
+@c(cost) is @c(cost-s2) which is based on autocorrelation function.
 
 Modifications to the reconstructed image are controlled by @c(modifier)
 argument. Currently implemented modifiers are @c(flipper), @c(swapper)
 and @c(batch-modifier). A modifier needs a sampler to take samples
-from the system. Two implemented samplers are @c(interface-sampler)
-and @c(uniform-sampler).
+from the system. Two implemented samplers are @c(interface-sampler),
+@c(uniform-sampler) and @c(dpn-sampler).
 
 A modification is either accepted or rejected by the procedure. A
 parameter @c(temp) is temperature of the system at the current

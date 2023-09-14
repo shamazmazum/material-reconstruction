@@ -1,8 +1,8 @@
 @begin[ref=index](section)
    @title(Overview)
    @c(material-reconstruction) is a tool which helps to restore 2D and 3D images
-   according to their two-point and lineal-path correlation function using the
-   algorithm called simulated annealing.
+   according to their two-point correlation function using the algorithm called
+   simulated annealing.
 
    According to Salvatore Torquato's book "Random Heterogeneous Materials",
    two-point correlation function is defined as follows:
@@ -12,27 +12,14 @@
    r with a specified orientation [into the image] and counting the fraction of
    times the end points fall in phase 1.
    @end(quote)
-   A definition of lineal-path function is similar:
-   @begin(quote)
-      The lineal-path function L₂(r) = L₂¹(r) for statistically homogeneous
-   media can be obtained by randomly tossing line segments of length r with a
-   specified orientation [into the image] and counting the fraction of times a
-   whole segment falls in phase 1.
-   @end(quote)
 
    The term "phase" means just a value of a pixel in an image. This library
    works with two-phase images which means its pixels can have a value @c(0) or
    @c(1).
-@end(section)
 
-@begin(section)
-   @title(Dependencies)
-   This library has few dependencies from the "C world":
-   @begin(list)
-      @item(A C compiler, like gcc or clang)
-      @item(OpenCL)
-      @item(FFTW3 with single precision)
-   @end(list)
+   This library requires a wrapper around Vulkan which can be found
+   @link[uri="https://github.com/shamazmazum/material-reconstruction-lowlevel"](Here).
+   All Common Lisp dependencies can be downloaded via Quicklisp.
 @end(section)
 
 @begin(section)
@@ -44,7 +31,6 @@
    @begin[lang=lisp](code)
 (defpackage annealing-test
   (:use #:cl #:recon)
-  (:import-from #:alexandria #:curry)
   (:export #:test-annealing-w/-init
            #:read-image))
 (in-package :annealing-test)
@@ -61,44 +47,57 @@
     array))
 
 (defun make-modifier ()
-  "Create a modifier which will sample the pixel at the boundary
-between phases (zeros and ones) and change the value of the pixel to
-the opposite."
-  (make-instance 'batch-modifier
-                 :modifier (make-instance 'flipper
-                                          :sampler (make-instance 'interface-sampler))))
+  "Create a modifier which will sample two pixels at the boundary
+between phases (zeros and ones) and belonging to two different phases
+and swap their values."
+(make-instance 'swapper
+               :sampler (make-instance 'interface-sampler)))
 
 (defun test-annealing-w/-init (array steps &key (t0 1f-5))
   "Run simulation of annealing for STEPS steps. ARRAY is the original binary
 image. T0 is initial temperature of the system."
   (declare (type (simple-array bit) array))
-  (with-gpu-objects (;; Create OpenCL context
-                     (ctx gpu-context)
-                     ;; Calculate correlation functions of the original
+  (with-gpu-objects ((ctx gpu-context) ; Create GPU context
+                     ;; Calculate correlation functions of the original image
                      (target corrfn-s2
-                             ;; We have to supply OpenCL context if we use S₂ function
-                             :context ctx
-                             :array   array)
+                             ;; GPU context
+                             :context    ctx
+                             ;; Original array. Alternatively you can
+                             ;; specify :S2 and :DIMENSIONS for
+                             ;; precalculated autocorrelation
+                             :array      array
+                             ;; Autocorrelation is calculated with
+                             ;; periodic boundary conditions
+                             :periodic-p t)
                      ;; Create an image which will be reconstructed
                      (recon  image-s2
-                             ;; Pass OpenCL context.
-                             :context ctx
-                             ;; In case of image, you only need to supply an initial approximation.
-                             :array   (initialize-random array)))
-    (let (;; cost-state is a state which holds initial values of correlation functions
-          (cost-state (make-instance 'cost-state
-                                     :target target
-                                     :recon  recon))
+                             ;; GPU context.
+                             :context    ctx
+                             ;; Initial approximation for reconstruction
+                             :array      (initialize-random array)
+                             ;; Must match :PERIODIC-P for target
+                             :periodic-p t)
+                     ;; Metric object which measures difference
+                     ;; between the target's and the reconstruction's
+                     ;; autocorrelation functions
+                     (metric metric-s2
+                             :context    ctx
+                             :recon      recon
+                             :target     target))
+    (let (;; Cost objects are used for calculation of the cost
+          ;;function which is minimized during annealing. COST-S2 is
+          ;;backed my METRIC-S2 object.
+          (cost     (make-instance 'cost-s2 :metric metric))
           ;; Create cooldown schedule
-          (cooldown  (aarts-korst-cooldown :n 25000 :α 1.0))
+          (cooldown (aarts-korst-cooldown :n 25000 :α 1.0))
           ;; Make modifier object
-          (modifier  (make-modifier)))
+          (modifier (make-modifier)))
       (values
-       ;; run-annealing runs simulated annealing with initial temperature t0
-       ;; iterating steps times and returns a list containing values of the cost
+       ;; RUN-ANNEALING runs simulated annealing with initial temperature T0
+       ;; iterating STEPS times and returns a list containing values of the cost
        ;; function at each step
-       (run-annealing target recon t0 steps
-                      :cost     (alexandria:curry #'cost cost-state)
+       (run-annealing recon t0 steps
+                      :cost     cost
                       :cooldown cooldown
                       :modifier modifier)
        ;; Get reconstructed image

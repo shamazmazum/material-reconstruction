@@ -13,9 +13,9 @@
                :type     boolean
                :accessor image-s2-periodic-p
                :documentation "If autocorrelation is periodic or not"))
-  (:documentation "Class for images with associated two-point
-function. @c(context) keyword argument must hold OpenCL context. The
-context must remain alive while a created image lives."))
+  (:documentation "Class for images with associated autocorrelation
+function. @c(context) keyword argument must hold @c(gpu-context)
+object. The context must remain alive while a created image lives."))
 
 (defgeneric (setf image-pixel) (val image coord)
   (:documentation "Set image pixel at coordinates specified by
@@ -82,10 +82,10 @@ order. Also can serve as a place for @c(setf)."
                     :initarg  :callback
                     :initform (error "Specify the callback")
                     :documentation "A function which is called with
-three arguments: the first argument is an image object the second is
+three arguments: the first argument is an image object, the second is
 an index at which update is performed and the third is the update type
 (@c(:pre) or @c(:post))."))
-  (:documentation "A mixin with a callback which will be called when a
+  (:documentation "A mixin with a callback which is called when a
 pixel is changed in the image. It's called twice: the first time
 before the actual change is made and the second time after the change
 is made. For example, image classes whose instances are used with

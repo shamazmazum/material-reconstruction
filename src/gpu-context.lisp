@@ -1,11 +1,8 @@
 (in-package :material-reconstruction)
 
-(defun read-kernel (kernel)
-  (with-output-to-string (output)
-    (with-open-file (input kernel)
-      (loop for line = (read-line input nil)
-            while line do
-              (write-line line output)))))
+(declaim (type boolean *validation-layers-p*))
+(defparameter *validation-layers-p* nil
+  "Should validation layers be enabled by default?")
 
 (defclass gpu-context (gpu-object)
   ((dimensions          :type           (integer 1 3)
@@ -16,7 +13,7 @@
 created with this context.")
    (validation-layers-p :type           boolean
                         :initarg        :validation-layers-p
-                        :initform       nil
+                        :initform       *validation-layers-p*
                         :reader         gpu-context-validation-layers-p
                         :documentation "Do we require validation
 layers when creating a context?"))

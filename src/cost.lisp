@@ -17,12 +17,16 @@ some metric")
         (image-distance cost)))
 
 (defclass cost-s2 (cost)
-  ((metric :type metric-s2
-           :initform (error "Specify metric object")
-           :initarg :metric
-           :reader cost-s2-metric))
+  ((metric :type          metric-s2
+           :initform      (error "Specify metric object")
+           :initarg       :metric
+           :reader        cost-s2-metric
+           :documentation "@c(metric-s2) object for calculation of
+difference in autocorrelation."))
   (:documentation "Objects of this class measure cost based on
-decrease in difference between autocorrelation functions."))
+decrease in difference between autocorrelation functions. These
+objects are backed by @c(metric-s2) objects which must be firstly
+created in GPU context."))
 
 (defmethod image-distance list ((cost cost-s2))
   (cons :s2 (sqrt (metric-s2 (cost-s2-metric cost)))))
