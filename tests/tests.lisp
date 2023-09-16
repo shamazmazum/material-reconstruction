@@ -64,7 +64,9 @@
                          :cost     cost
                          :cooldown cooldown
                          :modifier modifier))
-        (is (< (cost cost) 0.9))))))
+        (is (< (cost cost) 0.9))
+        (is (equalp (s2 (image-array recon))
+                    (image-gpu-s2 recon)))))))
 
 (in-suite s2-update)
 (defun test-s2-update (size ndims periodic)
