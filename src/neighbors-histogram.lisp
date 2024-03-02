@@ -2,9 +2,7 @@
 
 (declaim (inline neighbors-iterator))
 (defun neighbors-iterator (rank)
-  (si:imap #'alexandria:flatten
-           (reduce #'si:product
-                   (loop repeat rank collect (si:range -1 2)))))
+  (si:power (si:range -1 2) rank))
 
 (declaim (inline neighbor-index))
 (defun neighbor-index (center shift dimensions)
@@ -37,10 +35,7 @@ the returned array with index @c(idx) contains a number of neighbors of
   (let ((neighbor-map (make-array (array-dimensions array)
                                   :element-type '(unsigned-byte 8)))
         (dimensions (array-dimensions array))
-        (indices (si:imap #'alexandria:flatten
-                          (reduce #'si:product
-                                  (loop for dim in (array-dimensions array) collect
-                                        (si:range 0 dim)))))
+        (indices (si:indices (array-dimensions array)))
         (neighbor-area (neighbors-iterator (array-rank array))))
     (si:do-iterator (index indices)
       (let ((element (apply #'aref array index)))
