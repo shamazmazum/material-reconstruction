@@ -10,7 +10,7 @@
                :alexandria
                :serapeum)
   :serial t
-  :pathname "src/"
+  :pathname "src"
   :components ((:file "package")
                (:file "conditions")
                (:file "ffi")
@@ -34,7 +34,7 @@
 (defsystem :material-reconstruction/tests
   :version "0.1"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
-  :pathname "tests/"
+  :pathname "tests"
   :components ((:file "package")
                (:file "tests" :depends-on ("package")))
   :depends-on (:material-reconstruction
