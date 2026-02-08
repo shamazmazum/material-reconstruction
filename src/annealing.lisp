@@ -59,19 +59,19 @@ temperature is decreased according to cooldown schedule
     (values list &optional))
 (defun run-annealing (recon t0 n &key cost modifier cooldown)
   "Run simulated annealing with starting temperature @c(t0) for @c(n)
-steps. See also @c(annealing-step)."
-  (reverse
-   (si:foldl
-    (lambda (acc iteration)
-      (let* ((temp (if acc (annealing-info-temp (car acc)) t0))
-             (new-state (annealing-step recon temp
-                                        :cost     cost
-                                        :modifier modifier
-                                        :cooldown cooldown)))
-        (when (zerop (rem iteration 1000))
-          (format t "~d steps, ~f temp, ~f cost~%"
-                  iteration
-                  (annealing-info-temp new-state)
-                  (annealing-info-cost new-state)))
-        (cons new-state acc)))
-    nil (si:range 0 n))))
+steps. See also @c(annealing-step). Statistics is returned in the
+order from the newest entries to the oldest."
+  (si:foldl
+   (lambda (acc iteration)
+     (let* ((temp (if acc (annealing-info-temp (car acc)) t0))
+            (new-state (annealing-step recon temp
+                                       :cost     cost
+                                       :modifier modifier
+                                       :cooldown cooldown)))
+       (when (zerop (rem iteration 1000))
+         (format t "~d steps, ~f temp, ~f cost~%"
+                 iteration
+                 (annealing-info-temp new-state)
+                 (annealing-info-cost new-state)))
+       (cons new-state acc)))
+   nil (si:range 0 n)))
