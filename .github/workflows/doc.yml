@@ -16,20 +16,17 @@ jobs:
       - name: Install roswell
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
-          ros -e '(ql-dist:install-dist "http://dist.ultralisp.org/" :prompt nil)'
-      - name: Checkout Codex
-        uses: actions/checkout@v2
-        with:
-          repository: shamazmazum/codex
-          path: ~/.roswell/local-projects/codex
-      - name: Checkout docparser
-        uses: actions/checkout@v2
-        with:
-          repository: shamazmazum/docparser
-          path: ~/.roswell/local-projects/docparser
+      - name: Install qlot
+        run: |
+          ros install qlot
+      - name: Set Path
+        run: |
+          echo "${HOME}/.roswell/bin" >> $GITHUB_PATH
       - name: Build documentation
         run: |
-          ros -s codex -s material-reconstruction -e '(codex:document :material-reconstruction :skip-undocumented t)'
+          cd $GITHUB_WORKSPACE
+          qlot install
+          qlot exec ros -s codex -e '(codex:document :material-reconstruction :skip-undocumented t)'
       - name: Deploy to GH pages
         uses: peaceiris/actions-gh-pages@v3
         with:
