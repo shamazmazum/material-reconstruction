@@ -13,9 +13,14 @@ jobs:
       - name: Install roswell
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | sh
-      - name: Install Ultralisp
+      - name: Install qlot
         run: |
-          ros -e '(ql-dist:install-dist "http://dist.ultralisp.org/" :prompt nil)'
+          ros install qlot
+      - name: Set Path
+        run: |
+          echo "${HOME}/.roswell/bin" >> $GITHUB_PATH
       - name: Build system
         run: |
-          ros -e '(handler-case (ql:quickload :material-reconstruction) (error (c) (princ c) (uiop:quit 1)))'
+          cd $GITHUB_WORKSPACE
+          qlot install
+          qlot exec ros -e '(handler-case (asdf:load-system :material-reconstruction) (error (c) (princ c) (uiop:quit 1)))'
