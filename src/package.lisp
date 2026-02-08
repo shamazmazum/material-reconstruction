@@ -54,5 +54,10 @@
 
            #:cost
            #:cost-s2
+           #:annealing-info
+           #:annealing-info-temp
+           #:annealing-info-cost
+           #:annealing-info-reject
+           #:annealing-info-accept*
            #:annealing-step
            #:run-annealing))

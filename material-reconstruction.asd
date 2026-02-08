@@ -41,3 +41,7 @@
                :alexandria
                :fiveam
                :cl-value-noise))
+
+;; For qlot
+(defsystem :material-reconstruciton/docs
+  :depends-on (:material-reconstruction :codex))
