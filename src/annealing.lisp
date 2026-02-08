@@ -2,16 +2,16 @@
 
 (sera:defconstructor annealing-info
   "State of an annealing process after one step"
-  (temp    (single-float 0.0))
-  (cost    single-float)
-  (reject  boolean)
-  (accept* boolean))
+  (temp      (single-float 0.0))
+  (cost      single-float)
+  (rejected  unsigned-byte)
+  (accepted* unsigned-byte))
 
 (sera:-> annealing-step (image single-float &key
                          (:cost     cost)
                          (:cooldown function)
                          (:modifier modifier))
-         (values annealing-info &optional))
+         (values (single-float 0.0) single-float boolean boolean &optional))
 (defun annealing-step (recon temp &key cost modifier cooldown)
   "Perform an annealing step. An annealing procedure modifies the
 image @c(recon) minimising @c(cost). @c(cost) is an object of type
@@ -47,7 +47,7 @@ temperature is decreased according to cooldown schedule
           (rollback modifier recon state)
           (setq rejected t)))
       (setq accepted (not rejected)))
-    (annealing-info
+    (values
      (funcall cooldown temp cost2)
      (if rejected cost1 cost2)
      rejected accepted)))
@@ -63,15 +63,24 @@ steps. See also @c(annealing-step). Statistics is returned in the
 order from the newest entries to the oldest."
   (si:foldl
    (lambda (acc iteration)
-     (let* ((temp (if acc (annealing-info-temp (car acc)) t0))
-            (new-state (annealing-step recon temp
-                                       :cost     cost
-                                       :modifier modifier
-                                       :cooldown cooldown)))
-       (when (zerop (rem iteration 1000))
-         (format t "~d steps, ~f temp, ~f cost~%"
-                 iteration
-                 (annealing-info-temp new-state)
-                 (annealing-info-cost new-state)))
-       (cons new-state acc)))
-   nil (si:range 0 n)))
+     (let* ((last (car acc))
+            (temp (annealing-info-temp last)))
+       (multiple-value-bind (temp cost-value rejectedp accepted*p)
+           (annealing-step recon temp
+                           :cost     cost
+                           :modifier modifier
+                           :cooldown cooldown)
+         (let ((info (annealing-info
+                      temp cost-value
+                      (+ (annealing-info-rejected last)
+                         (if rejectedp 1 0))
+                      (+ (annealing-info-accepted* last)
+                         (if accepted*p 1 0)))))
+           (when (zerop (rem iteration 1000))
+             (format t "~d steps, ~f temp, ~f cost, ~d rejected, ~d accepted*~%"
+                     iteration temp cost-value
+                     (annealing-info-rejected  info)
+                     (annealing-info-accepted* info)))
+           (cons info acc)))))
+   (list (annealing-info t0 1.0 0 0))
+   (si:range 0 n)))
